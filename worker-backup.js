@@ -5,8 +5,6 @@ const wQ = new Queue('brender_render_job_queue8');
 
 const Blender = require('./node_docker_blender.js');
 
-const logger = require('./logger.js');
-
 const mayAddNextJobs = async (job) => {
     console.log('global completed : ', JSON.stringify(job));
     var data = job.data;

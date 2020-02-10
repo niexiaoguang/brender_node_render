@@ -1,11 +1,8 @@
 const Queue = require('bull');
 const config = require('../config.js');
 
-const wQ = new Queue('brender_render_job_queue8');
+const wQ = new Queue(config.JobsQueueName);
 
-const Blender = require('./node_docker_blender.js');
-
-const logger = require('./logger.js');
 
 const mayAddNextJobs = async (job) => {
     console.log('global completed : ', JSON.stringify(job));
@@ -39,37 +36,23 @@ const cleanJob = async (job) => {
 
 };
 
-wQ.on('completed', async (job, result) => {
+wQ.on('global:completed', async (jobId) => {
+    console.log('global completed job id : ' + jobId);
 
-    console.log('completed job : ' + JSON.stringify(job));
+    var completedJobs = await wQ.getCompleted(0, 0);
+    // console.log(completedJobs);
+    var job = completedJobs[0];
+    // console.log(JSON.stringify(job));
     await mayAddNextJobs(job);
     await updateDB(job);
     await cleanJob(job);
 
 });
 
+// wQ.on('completed', async (job, result) => {
+//     console.log('completed job : ' + JSON.stringify(job));
+//     await mayAddNextJobs(job);
+//     await updateDB(job);
+//     await cleanJob(job);
 
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-
-const worker = async (jobData) => {
-    // console.log(jobData);
-    // await sleep(3000);
-    // console.log('-------------------------' + new Date().getTime());
-    // return jobData;
-    var res = Blender.render_frame(jobData);
-    if (res == 'ok') {
-        return jobData;
-    } else {
-        return 'error'; // TODO error handle 
-    }
-
-
-};
-
-
-wQ.process('*', async (job) => {
-    return await worker(job.data);
-});
+// });
