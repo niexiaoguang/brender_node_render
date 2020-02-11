@@ -18,6 +18,7 @@
   "homepage": "https://github.com/niexiaoguang/brender_node_render#readme",
   "dependencies": {
     "bull": "^3.12.1",
+    "mariadb": "^2.2.0",
     "winston": "^3.2.1"
   }
 }
