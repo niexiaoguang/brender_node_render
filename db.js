@@ -1,29 +1,49 @@
-const config = require.('./config.js');
+const config = require('./config.js');
 const mariadb = require('mariadb');
-const pool = mariadb.createPool({ config.DBHost, user: config.DBUser, connectionLimit: 5 });
-const logger = require('./logger.js');
+// const pool = mariadb.createPool({ config.DBHost, user: config.DBUser, connectionLimit: 5 });
+// const logger = require('./logger.js');
 
 
-
-
-
-const asyncQuery = (query) => {
-    logger.log('info', 'db query', query);
+const asyncQuery = async (query) => {
+    //logger.log('info', 'db query', query);
     let conn;
     var resp;
     try {
 
-        conn = await pool.getConnection();
-        resp = await conn.query(query);
+
+        // only for dev ============   FIXME
+        // conn = await mariadb.createConnection({ host: '0.0.0.0:32774', user: 'root', password: 'mariamaria' });
+        conn = await mariadb.createConnection({
+            host: '0.0.0.0',
+            port: 32781,
+            user: 'root',
+            password: 'mymaria',
+            database: 'BRENDER'
+        });
+
+        // conn = await mariadb
+        //     .createConnection({
+        //         host: '0.0.0.0',
+        //         port: 32774,
+
+        //         ssl: {
+        //             rejectUnauthorized: false
+        //         },
+        //         user: 'root',
+        //         password: 'mariamaria',
+        //     });
+
+        resp = conn.query(query);
 
     } catch (err) {
         // throw err;
-        logger.log('error', 'db error', new Error(err));
+        //logger.log('error', 'db error', new Error(err));
+        console.log(err);
         resp = config.DBErrCode;
 
 
     } finally {
-        if (conn) conn.release(); //release to pool
+        // if (conn) conn.release(); //release to pool
         return resp;
 
     }
@@ -46,7 +66,7 @@ const query_all_task = async (uuid) => {
 
     var resp = await asyncQuery(query);
 
-    logger.info(resp);
+    //logger.info(resp);
 
     return resp;
 
@@ -63,7 +83,7 @@ const update_task_state = async (fuid, code) => {
 
     var resp = await asyncQuery(query);
 
-    logger.info(resp);
+    //logger.info(resp);
     return resp;
 
 
@@ -80,9 +100,11 @@ const query_task = async (fuid) => {
 
 
 
+const trydb = async () => {
+    var resp = await asyncQuery('select now()');
+    console.log(resp);
+};
 
 
-exports.query_task = query_task;
-exports.update_for_start_task = update_for_start_task;
-exports.query_all_task = query_all_task;
-exports.check_fuid_uuid = check_fuid_uuid;
+
+trydb();

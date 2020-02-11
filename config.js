@@ -10,42 +10,10 @@ const OkResp = JSON.stringify({
 });
 // error response 
 
-const AuthCheckErrResp = JSON.stringify({
-    status: "error",
-    info: "auth check failed"
-});
-const AuthCheckErrCode = 4003;
-
-const TaskExistedErrResp = JSON.stringify({
-    status: "error",
-    info: "fuid render task already existed"
-});
-const TaskExistedErrCode = 4000;
-
-const TaskExistedErrResp = JSON.stringify({
-    status: "error",
-    info: "fuid render task already existed"
-});
-const TaskExistedErrCode = 4000;
-
-
-const StopNotExistTaskErrResp = JSON.stringify({
-    status: "error",
-    info: "task not existed or finished"
-});
-const StopNotExistTaskErrCode = 4001;
-
-
-const StartExistingTaskErrResp = JSON.stringify({
-    status: "error",
-    info: "task already existed"
-});
-const StartExistingTaskErrCode = 4002;
-
 
 const TaskUserNotMatchErrCode = 4004;
 const TaskUserNotMatchErrResp = JSON.stringify({
-    status: "error";
+    status: "error",
     info: "task user not match"
 });
 
@@ -61,8 +29,8 @@ const Seperator = '-';
 const ConWorkersNum = 2;
 
 
-const DBHost = '127.0.0.1:32679'; //TODO
-const DBUser = '';
+const DBHost = '127.0.0.1:32773'; //TODO
+const DBUser = 'root';
 
 const DBTaskTabName = 'task';
 const DBTaskTabStateColName = 'state';
@@ -85,14 +53,6 @@ exports.staticRootPath = staticRootPath;
 exports.JobsQueueName = JobsQueueName;
 
 exports.OkResp = OkResp;
-exports.TaskExistedErrResp = TaskExistedErrResp;
-exports.TaskExistedErrCode = TaskExistedErrCode;
-
-exports.StopNotExistTaskErrResp = StopNotExistTaskErrResp;
-exports.StopNotExistTaskErrCode = StopNotExistTaskErrCode;
-
-exports.StartExistingTaskErrResp = StartExistingTaskErrResp;
-exports.StartExistingTaskErrCode = StartExistingTaskErrCode;
 
 exports.TaskUserNotMatchErrResp = TaskUserNotMatchErrResp;
 exports.TaskUserNotMatchErrCode = TaskUserNotMatchErrCode;

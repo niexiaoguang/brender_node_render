@@ -2,7 +2,7 @@ var blendProjectFilePath = 'test_small_cycles_cpu.blend';
 
 var blendExecPath = '/home/pata/blender/blender-2.81a-linux-glibc217-x86_64/blender';
 
-var localPath = '/home/pata/brender_dev/brender_node_master/task/blmedia/';
+var localPath = '/home/pata/brender_dev/brender_node_render/blmedia/';
 var containerPath = '/media/';
 var containerOutputPath = '/media/';
 var outputLogPath = localPath + 'output.log';
@@ -12,36 +12,10 @@ var frame = 2;
 var w = 1920;
 var h = 1080;
 var scene = 'Scene';
+var containerTempName;
 
-var cmdRunBl = "docker run -i --log-driver=none -a stdin -a stdout -a stderr -v " +
-    localPath + ":" +
-    containerPath + " bl281abash -c \'/usr/local/blender/blender -b  " +
-    containerPath + blendProjectFilePath +
-    " -P " + containerPath + "prepare.py --" +
-    " engine " + engine +
-    " samples " + samples +
-    " scene " + scene +
-    " frame " + frame +
-    " w " + w +
-    " h " + h +
-    " outputpath " + containerOutputPath +
-    "\' > " +
-    outputLogPath;
+var exec = require('child_process').exec;
 
-
-var cmdRunBl1 = "docker run -i --log-driver=none -a stdin -a stdout -a stderr -v " +
-    localPath + ":" +
-    containerPath + " bl281abash -c \'/usr/local/blender/blender -b  " +
-    containerPath + blendProjectFilePath +
-    " -P " + containerPath + "prepare.py --" +
-    " engine " + engine +
-    " samples " + samples +
-    " scene " + scene +
-    " frame " + frame +
-    " w " + w +
-    " h " + h +
-    " outputpath " + containerOutputPath +
-    "\'";
 
 
 var cmdReadLogOutput = 'tail -n 1 ' + outputLogPath;
@@ -50,6 +24,9 @@ var cmdReadLogOutput = 'tail -n 1 ' + outputLogPath;
 // console.log(cmdRunBl1);
 // console.log(cmdReadLogOutput);
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 var status;
 // const { exec } = require('child_process');
@@ -72,11 +49,42 @@ const checkLog = () => {
     });
 
 }
-const run = () => {
 
-    var exec = require('child_process').exec;
-    var runCmd = exec('docker run -i --log-driver=none -a stdin -a stdout -a stderr -v /home/pata/brender_dev/brender_node_master/task/blmedia/:/media/ bl281a -b  /media/test_small_cycles_cpu.blend -P /media/prepare.py -- engine CYCLES samples 64 scene Scene frame 2 w 640 h 480 outputpath /media/');
+const stop = async () => {
 
+    await sleep(3000);
+
+    var cmd2 = 'docker rm $(docker stop ' + containerTempName + ')';
+    var runCmd2 = await exec(cmd2);
+    runCmd2.stdout.on('data', function(data) {
+        console.log(data);
+
+    });
+};
+const run = async () => {
+
+
+    containerTempName = 'bl-' + new Date().getTime();
+    var blImageName = 'bl281a';
+    var blPyScriptName = 'prepare.py';
+    // var runCmd = exec('docker run -i --log-driver=none -a stdin -a stdout -a stderr -v /home/pata/brender_dev/brender_node_render/blmedia/:/media/ --name bl281name2 bl281a -b /media/test_small_cycles_cpu.blend -P /media/prepare.py -- engine CYCLES samples 64 scene Scene frame 2 w 640 h 480 outputpath /media/');
+    var cmd1 = 'docker run -i --log-driver=none -a stdin -a stdout -a stderr -v ' +
+        localPath + ':' + containerPath +
+        ' --name ' + containerTempName + ' ' + blImageName +
+        ' -b ' + containerPath + blendProjectFilePath +
+        ' -P ' + containerPath + blPyScriptName +
+        ' --' + ' engine ' + engine +
+        ' samples ' + samples +
+        ' scene ' + scene +
+        ' frame ' + frame +
+        ' w ' + w +
+        ' h ' + h +
+        ' outputpath ' + containerOutputPath;
+
+
+    console.log(cmd1);
+
+    var runCmd = await exec(cmd1);
     runCmd.stdout.on('data', function(data) {
         // console.log(data);
         var mark1 = data.indexOf('Rendered');
@@ -94,6 +102,7 @@ const run = () => {
 
         }
     });
+
     // const spawn = require('child_process').spawn;
 
     // var cmd = spawn('docker' ['run', '-i', '--log-driver=none', '-a', 'stdin', '-a', 'stdout', '-a', 'stderr', '-v', '/home/pata/brender_dev/brender_node_master/task/blmedia/:/media/', 'bl281a', '-b', '/media/test_small_cycles_cpu.blend', '-P', '/media/prepare.py', '--', 'engine', 'CYCLES', 'samples', '64', 'scene', 'Scene', 'frame', '2', 'w', '1920', 'h', '1080', 'outputpath', '/media/']);
@@ -131,3 +140,4 @@ const run = () => {
 };
 
 run();
+stop();
