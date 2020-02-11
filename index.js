@@ -49,7 +49,7 @@ const mayAddNextJobs = async (job) => {
 
 const updateDB = async (job) => {
     // console.log('updateDB for job : ' + JSON.stringify(job));
-    var query =
+    var query = '';
 
 };
 
@@ -68,17 +68,14 @@ wQ.on('completed', async (job, result) => {
 });
 
 
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// function sleep(ms) {
+//     return new Promise((resolve) => setTimeout(resolve, ms));
+// }
 
 
 const worker = async (jobData) => {
-    // console.log(jobData);
-    // await sleep(3000);
-    // console.log('-------------------------' + new Date().getTime());
-    // return jobData;
-    var res = Blender.render_frame(jobData);
+
+    var res = Blender.render(jobData);
     if (res == 'ok') {
         return jobData;
     } else {

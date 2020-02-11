@@ -39,6 +39,16 @@ const TaskStateCodeFinished = 3;
 const TaskStateCodeStopped = 2;
 const TaskStateCodeStarted = 1;
 const TaskStateCodeUploaded = 0;
+
+
+const blImageName = 'bl281a';
+const blPyScriptName = 'prepare.py';
+
+const userFileRootPath = '/';
+const localPath = '/home/pata/brender_dev/brender_node_render/blmedia/'; // TODO
+const containerPath = '/media/';
+const containerOutputPath = '/media/';
+const outputLogPath = localPath + 'output.log';
 // -------------------------------------------------------------
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
 exports.TaskStateCodeFailed = TaskStateCodeFailed;
@@ -67,6 +77,16 @@ exports.DBHost = DBHost;
 exports.DBUser = DBUser;
 exports.DBTaskTabName = DBTaskTabName;
 exports.DBTaskTabStateColName = DBTaskTabStateColName;
+
+
+exports.userFileRootPath = userFileRootPath;
+exports.localPath = localPath;
+exports.containerPath = containerPath;
+exports.containerOutputPath = containerOutputPath;
+exports.outputLogPath = outputLogPath;
+
+exports.blImageName = blImageName;
+exports.blPyScriptName = blPyScriptName;
 // task request data format --------------------------- 
 // {
 //     uuid: 'uuid',
