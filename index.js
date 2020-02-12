@@ -1,91 +1,29 @@
-const Queue = require('bull');
 const config = require('./config.js');
 
-const wQ = new Queue('brender_render_job_queue8');
+const { logger } = require('./logger.js');
 
-const Blender = require('./node_docker_blender.js');
+// console.log(process.argv);
+cosnt worker = require('./worker.js');
 
-const logger = require('./logger.js');
+var argv = process.argv.slice(2);
 
-const DB = require('./db.js');
+var paramName = argv[0];
+var queueName = argv[1];
 
-const getTaskState(fuid) = async (fuid) => {
-    var queryResp = await DB.query_task(fuid);
+var queueServerHost = argv[3];
+var queueServerPort = argv[5];
+var dbHost = argv[7];
+var dbPort = argv[9];
+var dbUser = argv[11];
+var dbPass = argv[13];
+var dbName = argv[15];
 
-    return queryResp.state;
+
+
+if (paramName !== 'queue') { // check other param names TODO
+    logger.error('bad init args : ' + process.argv);
+} else {
+    logger.info('start a node app with args : ' + process.argv);
+    worker.init([queueName, queueServerHost, queueServerPort, dbHost, dbPort, dbUser, dbPass, dbName]);
+
 }
-
-const mayAddNextJobs = async (job) => {
-
-    // check if task still as 'started' by db query
-    var fuid = job.data.fuid;
-    var state = await getTaskState(fuid);
-    if (state == config.TaskStateCodeStarted) {
-
-        var data = job.data;
-
-        var sframe = data.opts.frames[0];
-        var eframe = data.opts.frames[1];
-        var frame = data.job.frame;
-        var workernum = data.job.workernum;
-        var step = data.opts.step;
-
-        var fuid = data.fuid;
-        var nextFrame = frame + workernum * step;
-        if (nextFrame <= eframe) {
-            data.job.frame = nextFrame;
-            var ts = new Date().getTime();
-            var jobId = fuid + config.Seperator + nextFrame + config.Seperator + ts;
-            var name = fuid;
-            var opts = { jobId: jobId };
-
-            wQ.add(name, data, opts);
-        }
-    } else {
-        return job;
-    }
-
-};
-
-const updateDB = async (job) => {
-    // console.log('updateDB for job : ' + JSON.stringify(job));
-    var query = '';
-
-};
-
-const cleanJob = async (job) => {
-    // console.log('clean for job : ' + JSON.stringify(job));
-
-};
-
-wQ.on('completed', async (job, result) => {
-
-    console.log('completed job : ' + JSON.stringify(job));
-    await mayAddNextJobs(job);
-    await updateDB(job);
-    await cleanJob(job);
-
-});
-
-
-// function sleep(ms) {
-//     return new Promise((resolve) => setTimeout(resolve, ms));
-// }
-
-
-const worker = async (jobData) => {
-
-    var res = Blender.render(jobData);
-    if (res == 'ok') {
-        return jobData;
-    } else {
-        return 'error'; // TODO error handle 
-    }
-
-
-};
-
-
-wQ.process('*', async (job) => {
-    return await worker(job.data);
-});

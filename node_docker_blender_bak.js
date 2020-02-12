@@ -1,5 +1,35 @@
 var exec = require('child_process').exec;
-var params = process.argv.splice();
+
+const { logger } = require('./logger.js');
+
+var blContainerTempName = ''; // global var need to give value
+var cmdReadLogOutput = 'tail -n 1 ' + outputLogPath;
+
+var gProgress = '';
+var blStdout = '';
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+
+const getProgress = (output) => {
+    var proc = '';
+    var mark1 = output.indexOf('Rendered');
+    var mark2 = output.indexOf('Tiles');
+    if (mark1 > -1 && mark2 > -1) {
+        // 'Rendered 79/80 ' like 
+        // var str1 = output.substing(mark1, mark2);
+        // quick handle 
+        var str = output.substring(mark1 + 9, mark2 - 1);
+
+        var done = parseInt(str.split('/')[0]);
+        var all = parseInt(str.split('/')[1]);
+        proc = 100 * done / all + '%'; // TODO remove digit
+        // console.log(proc);
+    }
+    return proc;
+};
 
 
 // task job data format --------------------------------
@@ -26,24 +56,30 @@ var params = process.argv.splice();
 //         }
 //     }
 // }
-const render = () => {
+const render_frame = async (job) => {
+    var jobData = job.data;
+    var uuid = jobData.uuid;
+    var fuid = jobData.fuid;
+    var blendProjectFilePath = config.userFileRootPath + uuid + '/' + fuid + '.blend';
 
-    var fuid = params[0];
-    var uuid = params[1];
-    var engine = params[2];
-    var scene = params[3];
-    var frame = params[4];
-    var samples = params[5];
-    var w = params[6];
-    var h = params[7];
-    var device = params[8]; // may check device gpu with this param TODO
+    var localPath = config.localPath;
+    var containerPath = config.containerPath;
+    var containerOutputPath = config.containerOutputPath;
+    var outputLogPath = config.outputLogPath;
+    var engine = jobData.opts.engine;
+    var samples = jobData.opts.samples;
+    var frame = jobData.job.frame;
+    var w = jobData.opts.resolution[0];
+    var h = jobData.opts.resolution[1];
+    var scene = jobData.opts.scene;
 
-    const blendProjectFilePath = ''; // TODO
-    const blPyScriptPath = ''; // TODO
-    const blendExecPath = ''; // TODO
-    var cmdRender = blenderExecPath +
-        ' -b ' + blendProjectFilePath +
-        ' -P ' + blPyScriptPath +
+    blContainerTempName = 'bl-' + new Date().getTime();
+
+    var cmdRender = 'docker run -i --log-driver=none -a stdin -a stdout -a stderr -v ' +
+        localPath + ':' + containerPath +
+        ' --name ' + blContainerTempName + ' ' + config.blImageName +
+        ' -b ' + containerPath + blendProjectFilePath +
+        ' -P ' + containerPath + config.blPyScriptName +
         ' --' + ' engine ' + engine +
         ' samples ' + samples +
         ' scene ' + scene +
@@ -52,20 +88,34 @@ const render = () => {
         ' h ' + h +
         ' outputpath ' + containerOutputPath;
 
+
+    logger.info(cmdRender);
+
     var runCmdRender = exec(cmdRender);
     runCmdRender.stdout.on('data', function(data) {
-        if (process.send) {
+        // console.log(data);
+        var mark1 = data.indexOf('Rendered');
+        var mark2 = data.indexOf('Tiles');
+        if (mark1 > -1 && mark2 > -1) {
+            blStdout = data;
+            gProgress = getProgress(data);
 
-            process.send(data);
         }
     });
 
+    intoLoop();
 };
-// const render = async (data) => {
-//     return await render_frame(data); // TODO other render task in the future
-// };
+const render = async (job) => {
+    return await render_frame(job); // TODO other render task in the future
+};
 
-render();
+exports.render = render;
+
+
+
+
+
+
 
 
 

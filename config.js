@@ -32,8 +32,21 @@ const ConWorkersNum = 2;
 const DBHost = '127.0.0.1:32773'; //TODO
 const DBUser = 'root';
 
+const DBJobsTableName = 'jobs'; // need to change database table name TODO
 const DBTaskTabName = 'task';
 const DBTaskTabStateColName = 'state';
+
+
+const DBJobsTabIdColName = 'id';
+const DBJobsTabFuidColName = 'fuid';
+const DBJobsTabUuidColName = 'uuid';
+const DBJobsTabStartColName = 'start';
+const DBJobsTabEndColName = 'end';
+const DBJobsTabResColName = 'result'; // add into db TODO
+const DBJobsTabDeviceColName = 'device';
+const DBJobsTabMemoColName = 'memo';
+
+
 const TaskStateCodeFailed = 4;
 const TaskStateCodeFinished = 3;
 const TaskStateCodeStopped = 2;
@@ -78,6 +91,15 @@ exports.DBUser = DBUser;
 exports.DBTaskTabName = DBTaskTabName;
 exports.DBTaskTabStateColName = DBTaskTabStateColName;
 
+exports.DBJobsTableName = DBJobsTableName;
+exports.DBJobsTabIdColName = DBJobsTabIdColName;
+exports.DBJobsTabFuidColName = DBJobsTabFuidColName;
+exports.DBJobsTabUuidColName = DBJobsTabUuidColName;
+exports.DBJobsTabStartColName = DBJobsTabStartColName;
+exports.DBJobsTabEndColName = DBJobsTabEndColName;
+exports.DBJobsTabDeviceColName = DBJobsTabDeviceColName;
+exports.DBJobsTabMemoColName = DBJobsTabMemoColName;
+exports.DBJobsTabResColName = DBJobsTabResColName;
 
 exports.userFileRootPath = userFileRootPath;
 exports.localPath = localPath;
@@ -115,6 +137,7 @@ exports.blPyScriptName = blPyScriptName;
 //         job: {
 //             workernum: 5, // number of workers at a time 
 //             frame: 3, // current rendering frame
+// 			   device:'',
 
 //         },
 //         opts: {
