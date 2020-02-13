@@ -10,6 +10,7 @@ var gPort;
 var gUser;
 var gPass;
 var gDatabase;
+
 const asyncQuery = async (query) => {
     logger.log('info', 'db query', query);
     var resp;
@@ -38,45 +39,8 @@ const asyncQuery = async (query) => {
     }
 };
 
-const check_fuid_uuid = async (fuid, uuid) => {
-    var query = 'SELECT * FROM ' +
-        config.DBTaskTabName +
-        ' WHERE fuid = ' +
-        fuid;
-    var resp = await asyncQuery(query);
-    return resp.uuid == uuid;
-};
 
-const query_all_task = async (uuid) => {
-    const query = 'SELECT * FROM ' +
-        config.DBTaskTabName +
-        ' WHERE uuid = ' +
-        uuid;
-
-    var resp = await asyncQuery(query);
-
-    return resp;
-
-};
-
-const update_task_state = async (fuid, code) => {
-    var query = 'UPDATE ' + config.DBTaskTabName +
-        ' SET ' + config.DBActionColName + ' = ' +
-        code +
-        ' WHERE ' + config.DBFuidColName +
-        ' = ' +
-        fuid;
-
-
-    var resp = await asyncQuery(query);
-
-    //logger.info(resp);
-    return resp;
-
-
-};
-
-const query_task = async (fuid) => {
+const get_task_state = async (fuid) => {
     var query = 'SELECT * FROM ' +
         config.DBTaskTabName +
         ' WHERE fuid = ' +
@@ -119,25 +83,19 @@ const insert_jobs_table = async (data) => {
     return resp;
 };
 
-const trydb = async () => {
+
+const init = async (host, port, user, pass, dbName) => {
+    gHost = host;
+    gPort = port;
+    gUser = user;
+    gPass = pass;
+    gDatabase = dbName;
+
     var resp = await asyncQuery('select now()');
-    logger.info('init db with ' + resp);
-};
-
-
-
-// trydb();
-
-const init = (params) => {
-    gHost = params[0];
-    gPort = params[1];
-    gUser = params[2];
-    gPass = params[3];
-    gDatabase = params[4];
-    var resp = await trydb();
     return resp;
 };
 
+
 exports.init = init;
 exports.insert_jobs_table = insert_jobs_table;
-exports.query_task = query_task;
+exports.get_task_state = get_task_state;

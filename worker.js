@@ -211,33 +211,12 @@ const worker = async (job) => {
 
 // =============================================================
 
-const init = (argv) => {
-
-    myData.queueName = argv[0];
-    myData.queueServerPort = argv[1];
-    myData.queueServerPort = argv[2];
-    myData.dbHost = argv[3]
-    myData.dbPort = argv[4];
-    myData.dbUser = argv[5];
-    myData.dbPass = argv[6];
-    myData.dbName = argv[7];
-
-    // init db
-    if (DB.init([myData.dbHost,
-            myData.dbPort,
-            myData.dbUser,
-            myData.dbPass,
-            myData.dbName
-        ]) == config.DBErrCode) {
-
-        logger.error('init db failed');
-        return;
-    }
+const init = (queueName) => {
 
 
     // init queue
 
-    const wQ = new Queue(myData.queueName);
+    const wQ = new Queue(queueName);
 
     if (!(wQ)) {
         logger.error('init queue failed');

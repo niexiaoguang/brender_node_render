@@ -1,29 +1,44 @@
 const config = require('./config.js');
 
-const { logger } = require('./logger.js');
+const { logger } = require('./logger.js'); // require module as logger not the object inside which required by {logger}
 
 // console.log(process.argv);
-cosnt worker = require('./worker.js');
+const worker = require('./worker.js');
+
+const DB = require('./db.js');
 
 var argv = process.argv.slice(2);
 
-var paramName = argv[0];
-var queueName = argv[1];
+const do_init = async (argv) => {
 
-var queueServerHost = argv[3];
-var queueServerPort = argv[5];
-var dbHost = argv[7];
-var dbPort = argv[9];
-var dbUser = argv[11];
-var dbPass = argv[13];
-var dbName = argv[15];
+    // process.env.NODE_ENV = 'production';
+
+    var myid = argv[0];
+    logger.info('my id : ' + myid);
+
+    var queueName = argv[6];
+    worker.init_queue_name(queueName);
+
+    var dbHost = argv[1];
+    var dbPort = argv[2];
+    var dbUser = argv[3];
+    var dbPass = argv[4];
+    var dbName = argv[5];
+    var resp = await DB.init(dbHost, dbPort, dbUser, dbPass, dbName);
+    // logger.info(JSON.stringify(resp));
+    return resp;
+
+};
+const start = () => {
+    logger.info('init done , start');
+
+};
 
 
-
-if (paramName !== 'queue') { // check other param names TODO
-    logger.error('bad init args : ' + process.argv);
-} else {
-    logger.info('start a node app with args : ' + process.argv);
-    worker.init([queueName, queueServerHost, queueServerPort, dbHost, dbPort, dbUser, dbPass, dbName]);
-
+const init = async () => {
+    var res = await do_init(argv);
+    logger.info('init with : ' + JSON.stringify(res));
+    start();
 }
+
+init();

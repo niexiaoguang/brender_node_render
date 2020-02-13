@@ -1,17 +1,27 @@
-CREATE TABLE renderjobs
+CREATE TABLE jobs
 ( 
-  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tuid` CHAR(30) NOT NULL,
   `uuid` CHAR(16) NOT NULL,
-  `fuid` CHAR(16) NOT NULL,
+  `frame` MEDIUMINT NOT NULL,
   `start` TIMESTAMP NOT NULL,
   `end` TIMESTAMP NOT NULL,
-  `gputypecode` TINYINT(3) NOT NULL,
-  `creation_date` DATE,
-  `memo` VARCHAR(64),
+  `state` CHAR(3) NOT NULL,
+  `device` CHAR(3) NOT NULL,
+  `suid` CHAR(8),
+  INDEX(`tuid`),
   INDEX(`uuid`),
-  INDEX(`fuid`),
   PRIMARY KEY (`id`)
-)DEFAULT CHARACTER SET = utf8;;
+)DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE fuid
+( 
+  `fuid` CHAR(16) NOT NULL,
+  `uuid` CHAR(16) NOT NULL,
+  `creation_date` TIMESTAMP NOT NULL,
+  INDEX(`uuid`),
+  PRIMARY KEY (`fuid`)
+)DEFAULT CHARACTER SET = utf8;
 
 CREATE TABLE user
 ( 
@@ -26,49 +36,15 @@ CREATE TABLE user
   PRIMARY KEY (`uuid`)
 )DEFAULT CHARACTER SET = utf8;
 
-CREATE TABLE task
+CREATE TABLE tuid
 ( 
-  `fuid` CHAR(16) NOT NULL,
+  `tuid` CHAR(30) NOT NULL,
   `uuid` CHAR(16) NOT NULL,
-  `name` VARCHAR(64),
-  `creation_ts` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `action` TINYINT(1) UNSIGNED DEFAULT 1 NOT NULL,
+  `state` CHAR(3) NOT NULL,
   `update_ts` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `memo` VARCHAR(128),
   INDEX(`uuid`),
-  PRIMARY KEY (`fuid`)
+  PRIMARY KEY (`tuid`)
 )DEFAULT CHARACTER SET = utf8;
-
-
-
-解决方法
-
-# 修改全局时间
-set global time_zone = '+8:00';
-
-# 修改当前会话时间
-set time_zone = '+8:00';
-
-# 立即生效
-flush privileges;
-验证结果
-
-select now();
-
-
-
-
-
-
-docker run -d -P --name mariadb -P -v /home/pata/mariadb/data/mariadb:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=mymaria mariadb
-
-
-
-
-
-
-
-
 
 
 

@@ -1,26 +1,5 @@
-const staticRootPath = '/home/pata/nginx/html/static/upload/blend/';
-
-const JobsQueueName = 'brender_render_job_queue8';
-
-// -------------------------------------------------------------
-
-
-const OkResp = JSON.stringify({
-    status: 'ok'
-});
-// error response 
-
-
-const TaskUserNotMatchErrCode = 4004;
-const TaskUserNotMatchErrResp = JSON.stringify({
-    status: "error",
-    info: "task user not match"
-});
-
-
-const DBErrCode = 4100;
-const DBErrResp = 'db error';
-
+const rootPath = '/media/';
+const logPath = '/log/';
 
 
 const Seperator = '-';
@@ -29,125 +8,62 @@ const Seperator = '-';
 const ConWorkersNum = 2;
 
 
-const DBHost = '127.0.0.1:32773'; //TODO
-const DBUser = 'root';
-
-const DBJobsTableName = 'jobs'; // need to change database table name TODO
-const DBTaskTabName = 'task';
-const DBTaskTabStateColName = 'state';
-
-
-const DBJobsTabIdColName = 'id';
-const DBJobsTabFuidColName = 'fuid';
-const DBJobsTabUuidColName = 'uuid';
-const DBJobsTabStartColName = 'start';
-const DBJobsTabEndColName = 'end';
-const DBJobsTabResColName = 'result'; // add into db TODO
-const DBJobsTabDeviceColName = 'device';
-const DBJobsTabMemoColName = 'memo';
-
-
-const TaskStateCodeFailed = 4;
-const TaskStateCodeFinished = 3;
-const TaskStateCodeStopped = 2;
-const TaskStateCodeStarted = 1;
-const TaskStateCodeUploaded = 0;
-
-
 const blImageName = 'bl281a';
 const blPyScriptName = 'prepare.py';
 
-const userFileRootPath = '/';
-const localPath = '/home/pata/brender_dev/brender_node_render/blmedia/'; // TODO
-const containerPath = '/media/';
-const containerOutputPath = '/media/';
-const outputLogPath = localPath + 'output.log';
-// -------------------------------------------------------------
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-exports.TaskStateCodeFailed = TaskStateCodeFailed;
-exports.TaskStateCodeFinished = TaskStateCodeFinished;
-exports.TaskStateCodeStopped = TaskStateCodeStopped;
-exports.TaskStateCodeStarted = TaskStateCodeStarted;
-exports.TaskStateCodeUploaded = TaskStateCodeUploaded;
+const DBErrCode = 4100;
+const DBErrResp = 'db error';
+
+// ----------------------------------------------------
+// ----------------------------------------------------
+const DBTabNameTask = 'tuid';
+const DBTabNameJobs = 'jobs';
+const DBTabNameFiles = 'fuid';
+
+const DBColNameFuid = 'fuid';
+const DBColNameUuid = 'uuid';
+const DBColNameTuid = 'tuid';
+const DBColNameStart = 'start';
+const DBColNameEnd = 'end';
+const DBColNameState = 'state';
+const DBColNameUpdateTs = 'update_ts';
+const DBColNameDevice = 'device';
+const DBColNameId = 'id';
+const DBColNameSuid = 'suid';
+
+const DBStateCodeStopped = 'stp';
+const DBStateCodeStarted = 'sta';
+const DBStateCodeFinished = 'fin';
+const DBStateCodeFailed = 'fai';
 
 
-exports.staticRootPath = staticRootPath;
-
-exports.JobsQueueName = JobsQueueName;
-
-exports.OkResp = OkResp;
-
-exports.TaskUserNotMatchErrResp = TaskUserNotMatchErrResp;
-exports.TaskUserNotMatchErrCode = TaskUserNotMatchErrCode;
 
 exports.DBErrCode = DBErrCode;
 exports.DBErrResp = DBErrResp;
 
+
+
 exports.ConWorkersNum = ConWorkersNum;
 exports.Seperator = Seperator;
 
-exports.DBHost = DBHost;
-exports.DBUser = DBUser;
-exports.DBTaskTabName = DBTaskTabName;
-exports.DBTaskTabStateColName = DBTaskTabStateColName;
-
-exports.DBJobsTableName = DBJobsTableName;
-exports.DBJobsTabIdColName = DBJobsTabIdColName;
-exports.DBJobsTabFuidColName = DBJobsTabFuidColName;
-exports.DBJobsTabUuidColName = DBJobsTabUuidColName;
-exports.DBJobsTabStartColName = DBJobsTabStartColName;
-exports.DBJobsTabEndColName = DBJobsTabEndColName;
-exports.DBJobsTabDeviceColName = DBJobsTabDeviceColName;
-exports.DBJobsTabMemoColName = DBJobsTabMemoColName;
-exports.DBJobsTabResColName = DBJobsTabResColName;
-
-exports.userFileRootPath = userFileRootPath;
-exports.localPath = localPath;
-exports.containerPath = containerPath;
-exports.containerOutputPath = containerOutputPath;
-exports.outputLogPath = outputLogPath;
-
-exports.blImageName = blImageName;
-exports.blPyScriptName = blPyScriptName;
-// task request data format --------------------------- 
-// {
-//     uuid: 'uuid',
-//     fuid: 'fuid',
-//     opts: {
-//         scene:'Scene',
-//         resolution: [1920, 1080],
-//         engine: 'CYCLES' / 'BLENDER_EEVEE',
-//         samples: 200,
-//         frames: [1, 250],
-//         step:1
-//     }
-// }
 
 
+exports.DBTabNameTask = DBTabNameTask;
+exports.DBTabNameJobs = DBTabNameJobs;
+exports.DBTabNameFiles = DBTabNameFiles;
 
+exports.DBColNameFuid = DBColNameFuid;
+exports.DBColNameUuid = DBColNameUuid;
+exports.DBColNameTuid = DBColNameTuid;
+exports.DBColNameStart = DBColNameStart;
+exports.DBColNameEnd = DBColNameEnd;
+exports.DBColNameState = DBColNameState;
+exports.DBColNameUpdateTs = DBColNameUpdateTs;
+exports.DBColNameDevice = DBColNameDevice;
+exports.DBColNameId = DBColNameId;
+exports.DBColNameSuid = DBColNameSuid;
 
-// task job data format --------------------------------
-
-// {
-//     name: 'fuid',
-//     opts: { jobId: 'fuid' + 'frame' + ts },
-//     data: {
-//         uuid: 'uuid',
-//         fuid: 'fuid',
-//         job: {
-//             workernum: 5, // number of workers at a time 
-//             frame: 3, // current rendering frame
-// 			   device:'',
-
-//         },
-//         opts: {
-//             scene:'Scene',
-//             resolution: [1920, 1080],
-//             engine: 'CYCLES' / 'BLENDER_EEVEE',
-//             samples: 200,
-//             frames: [1, 250],
-//             step: 1,
-
-//         }
-//     }
-// }
+exports.DBStateCodeStopped = DBStateCodeStopped;
+exports.DBStateCodeStarted = DBStateCodeStarted;
+exports.DBStateCodeFinished = DBStateCodeFinished;
+exports.DBStateCodeFailed = DBStateCodeFailed;
