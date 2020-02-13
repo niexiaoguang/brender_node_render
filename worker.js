@@ -4,7 +4,7 @@ const config = require('./config.js');
 
 const Blender = require('./node_docker_blender.js');
 
-const logger = require('./logger.js');
+const { logger } = require('./logger.js');
 
 const DB = require('./db.js');
 
@@ -14,8 +14,21 @@ const path = require('path');
 
 const blprogram = path.resolve('node_docker_blender.js');
 
+const fs = require('fs')
 
-var myData = {};
+
+
+
+// set stop marker for parent worker process as false
+var gStopMarker = false;
+
+var gDevice = '';
+
+const handle_db_connection_err = (data) => {
+    logger.log('error', 'db connection broken with %s', JSON.stringify(data));
+    process.exit(1);
+};
+
 
 
 // =============================================================
@@ -59,12 +72,6 @@ const mayAddNextJobs = async (job) => {
 
 };
 
-// =============================================================
-
-const cleanJob = async (job) => {
-    // console.log('clean for job : ' + JSON.stringify(job));
-
-};
 // -----------  TODO
 // {
 //     data: {
@@ -113,38 +120,20 @@ const prepare_params = (jobData) => {
     return resp;
 };
 
-const get_progress = (message) => {
-    var proc = null;
-    var mark1 = message.indexOf('Rendered');
-    var mark2 = message.indexOf('Tiles');
-    if (mark1 > -1 && mark2 > -1) {
-        // 'Rendered 79/80 ' like 
-        // var str1 = message.substing(mark1, mark2);
-        // quick handle 
-        var str = message.substring(mark1 + 9, mark2 - 1);
-
-        var done = parseInt(str.split('/')[0]);
-        var all = parseInt(str.split('/')[1]);
-        proc = 100 * done / all + '%'; // TODO remove digit
-        // console.log(proc);
-    }
-    return proc;
-
-};
-
 
 // const fuid = data.fuid;
 // const uuid = data.uuid;
 // const startTs = data.start;
 // const code = data.code;
 
-const save_result_to_db = async (code, job) => {
+const save_result_to_db = async (job, code) => {
     var data = {};
     data.tuid = job.data.tuid;
     data.uuid = job.data.uuid;
+    data.frame = job.data.job.frame;
     data.code = code;
-    data.device = job.data.device; // add into all job data TODO
-    data.startTs = 'start'; // TODO
+    data.device = gDevice; // add into all job data TODO
+    data.startTs = job.data.job.startTs; // TODO
     var res = await DB.insert_jobs_table(data);
     return res;
 
@@ -156,13 +145,74 @@ const check_result = async (job) => {
     var res = await save_result_to_db(config.DBStateCodeFinished, job);
     return res;
 };
+
+
+const handle_finished_job = (job) => {
+    // check result image
+    var uuid = job.data.uuid;
+    var fuid = job.data.fuid;
+    var ts = job.data.ts;
+    var fram = job.data.job.frame;
+    var checkImageFilePath = config.rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/' +
+        frame + '.png';
+
+    try {
+        if (fs.existsSync(checkImageFilePath)) {
+            //file exists
+            logger.info('blender file checked : ' + checkImageFilePath);
+            save_result_to_db(job, config.DBStateCodeFinished);
+            return;
+        }
+    } catch (err) {
+        logger.error(err);
+        handle_failed_job(job);
+    }
+
+};
+
+const handle_failed_job = (job) => {
+    save_result_to_db(job, config.DBStateCodeFailed);
+
+};
+
+const handle_stopped_job = (job) => {
+    save_result_to_db(job, config.DBStateCodeStopped);
+};
+
+
 // =============================================================
 const worker = async (job) => {
 
-    var res = await get_task_state(job.data.fuid);
-    if (res == config.DBStateCodeStarted) {
-        // set up child blender 
+    var res = await get_task_state(job.data.tuid);
+    if (res.state == config.DBStateCodeStarted) {
+
         var jobData = job.data;
+        var uuid = jobData.uuid;
+        var fuid = jobData.fuid;
+        var ts = jobData.ts;
+        var fileName = jobData.opts.name;
+
+
+        // check path and file
+
+        var targetBlenderFilePath = config.rootPath + uuid + '/' + fuid + '/' + ts + '/' + fileName;
+
+        try {
+            if (fs.existsSync(targetBlenderFilePath)) {
+                //file exists
+                logger.info('blender file checked : ' + targetBlenderFilePath);
+            }
+        } catch (err) {
+            logger.error(err);
+            return config.TaskErrCodeFileNotExist;
+        }
+
+
+
+        // set up child blender 
         const parameters = prepare_params(jobData);
         const options = {
             stdio: ['pipe', 'pipe', 'pipe', 'ipc']
@@ -172,33 +222,42 @@ const worker = async (job) => {
 
 
         child.on('message', message => {
-            var prog = get_progress(message);
-            if (prog) {
-                job.progress(prog);
-            }
-            if (porg == 'Blender quit') {
+            if (message == config.BlenderQuitStr) {
+                gStopMarker = true;
                 check_result(job);
-                return jobData; // success here
+            } else {
+                // update progress
+                job.progress(parseInt(message));
             }
         });
 
 
         // into loop
-        var refreshId = setInterval(function() {
-            var state = get_task_state(jobData.tuid);
-            if (state !== config.DBStateCodeStarted) {
-                // kill child 
-                child.kill('SIGHUP');
+        var refreshId = setInterval(async function(job) {
+
+            if (gStopMarker) {
+                // child finished
                 clearInterval(refreshId);
+                handle_finished_job(job);
 
+            } else {
+                var state = await get_task_state(jobData.tuid);
+                if (state !== config.DBStateCodeStarted) {
+                    // kill child 
+                    child.kill('SIGHUP');
+                    clearInterval(refreshId);
+                    handle_stopped_job(job);
+
+                }
             }
-        }, 5000); // set interval better TODO
-        var res = await save_result_to_db(config.DBStateCodeStopped, job);
 
-        return job.data; // how works after setinterval ?? FIXME 
+        }, TaskSateCheckFreq); // set interval better TODO
+
 
     } else {
-        return job.data; // do nothing , back
+
+        // handle_db_connection_err(job);
+        return config.TaskErrCodeDbNoRecord;
     }
 
 
@@ -206,6 +265,9 @@ const worker = async (job) => {
 
 };
 
+const get_system_device = () => {
+    return ''; // TODO  exec  'lshw -C display' to check system info
+};
 
 // =============================================================
 
@@ -213,23 +275,38 @@ const init = (queueName) => {
 
 
     // init queue
+    gDevice = get_system_device();
 
     const wQ = new Queue(queueName);
 
-    if (!(wQ)) {
-        logger.error('init queue failed');
-        return;
-    }
+    var queueReady = false;
+    wQ.getJobCounts().then(res => {
+        logger.info('task queue init with job Count: ' + res);
+        queueReady = true;
+    });
+
+    setTimeout(function() {
+        if (!(queueReady)) {
+            logger.error('failed to init task queue name : ' + queueName);
+            process.exit(1);
+        }
+    }, 3000);
+
+
     wQ.process('*', async (job) => {
         return await worker(job);
     });
 
     wQ.on('completed', async (job, result) => {
+        if (result == config.TaskErrCodeDbNoRecord) {
+            return;
+        } else if (result == config.TaskErrCodeFileNotExist) {
+            return;
+        } else {
+            return await mayAddNextJobs(job); // like process ?? TODO
 
-        console.log('completed job : ' + JSON.stringify(job));
-        await mayAddNextJobs(job);
-        await updateDB(job);
-        await cleanJob(job);
+        }
+
 
     });
 

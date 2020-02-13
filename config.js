@@ -1,7 +1,7 @@
 const rootPath = '/media/';
-const logPath = '/log/';
-
-
+const logPath = './log/';
+const blenderScriptPath = rootPath + '/scripts/prepare.py';
+const blenderExecPath = '/usr/local/blender/blender';
 const Seperator = '-';
 
 // most numbbet of worker at a time for a task , fixed only dev  TODO 
@@ -39,6 +39,29 @@ const DBStateCodeFinished = 'fin';
 const DBStateCodeFailed = 'fai';
 
 
+const TaskSateCheckFreq = 10000; //10 sec
+
+const TaskErrCodeDbNoRecord = 4400;
+
+const TaskErrCodeFileNotExist = 4500;
+
+
+const BlenderQuitStr = 'Blender quit';
+
+
+// ======================================
+
+exports.rootPath = rootPath;
+exports.logPath = logPath;
+
+exports.blenderExecPath = blenderExecPath;
+exports.blenderScriptPath = blenderScriptPath;
+
+exports.TaskSateCheckFreq = TaskSateCheckFreq;
+exports.BlenderQuitStr = BlenderQuitStr;
+
+exports.TaskErrCodeFileNotExist = TaskErrCodeFileNotExist;
+exports.TaskErrCodeDbNoRecord = TaskErrCodeDbNoRecord;
 
 exports.DBErrCode = DBErrCode;
 exports.DBErrResp = DBErrResp;

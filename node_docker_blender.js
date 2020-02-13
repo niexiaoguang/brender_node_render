@@ -1,6 +1,24 @@
 var exec = require('child_process').exec;
 var params = process.argv.splice();
+var config = require('./config.js');
 
+const get_progress = (message) => {
+    var proc = null;
+    var mark1 = message.indexOf('Rendered');
+    var mark2 = message.indexOf('Tiles');
+    if (mark1 > -1 && mark2 > -1) {
+        // 'Rendered 79/80 ' like 
+        // var str1 = message.substing(mark1, mark2);
+        // quick handle 
+        var str = message.substring(mark1 + 9, mark2 - 1);
+
+        var done = parseInt(str.split('/')[0]);
+        var all = parseInt(str.split('/')[1]);
+        proc = 100 * done / all; // bull queue job use 0 - 100 for progress
+    }
+    return proc;
+
+};
 
 // task job data format --------------------------------
 
@@ -36,12 +54,21 @@ const render = () => {
     var samples = params[5];
     var w = params[6];
     var h = params[7];
-    var device = params[8]; // may check device gpu with this param TODO
+    var ts = params[8];
 
-    const blendProjectFilePath = ''; // TODO
-    const blPyScriptPath = ''; // TODO
-    const blenderExecPath = ''; // TODO
-    const containerOutputPath = ''; // TODO
+
+
+    const blendProjectFilePath = config.rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        fuid + '.blend'; // use fuid as blender project file name , and with mutable utf8 name insde config.js under fuid path TODO
+    const blPyScriptPath = config.blenderScriptPath;
+    const blenderExecPath = config.blenderExecPath;
+    const outputPath = config.rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/render/';
+
     var cmdRender = blenderExecPath +
         ' -b ' + blendProjectFilePath +
         ' -P ' + blPyScriptPath +
@@ -51,13 +78,24 @@ const render = () => {
         ' frame ' + frame +
         ' w ' + w +
         ' h ' + h +
-        ' outputpath ' + containerOutputPath;
+        ' outputpath ' + outputPath;
+
+
+
 
     var runCmdRender = exec(cmdRender);
     runCmdRender.stdout.on('data', function(data) {
         if (process.send) {
+            if (data !== config.BlenderQuitStr) {
+                data = get_progress(data); // make progress number string
+                if (data) {
+                    process.send(data);
 
-            process.send(data);
+                }
+            } else {
+                process.send(data); // send 'Blender quit'
+            }
+
         }
     });
 

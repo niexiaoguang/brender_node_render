@@ -51,8 +51,9 @@ const get_task_state = async (tuid) => {
 // insert into user_table (user_id, ip, partial_ip, source, user_edit_date, username) values 
 // (default, '39.48.49.126', null, 'user signup page', now(), 'newUser');
 const insert_jobs_table = async (data) => {
-    const tuid = data.fuid;
+    const tuid = data.tuid;
     const uuid = data.uuid;
+    const frame = data.frame;
     const startTs = data.start;
     const code = data.code;
     const suid = '';
@@ -73,6 +74,7 @@ const insert_jobs_table = async (data) => {
         'default' + ',' +
         tuid + ',' +
         uuid + ',' +
+        frame + ',' +
         startTs + ',' +
         'now()' + ',' +
         code + ',' +
