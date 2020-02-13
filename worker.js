@@ -156,16 +156,31 @@ const handle_finished_job = (job) => {
     var checkImageFilePath = config.rootPath +
         uuid + '/' +
         fuid + '/' +
-        ts + '/' +
+        ts + '/rendered/' +
         frame + '.png';
 
+    var logFilePath =
+        const.rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/log/' +
+        frame + '.log';
     try {
         if (fs.existsSync(checkImageFilePath)) {
             //file exists
             logger.info('blender file checked : ' + checkImageFilePath);
             save_result_to_db(job, config.DBStateCodeFinished);
+            if (fs.existsSync(logFilePath)) {
+                //file exists
+                logger.info('remove log file : ' + logFilePath);
+                save_result_to_db(job, config.DBStateCodeFinished);
+                return;
+            }
+
             return;
         }
+
+
     } catch (err) {
         logger.error(err);
         handle_failed_job(job);

@@ -1,5 +1,5 @@
 var exec = require('child_process').exec;
-var params = process.argv.splice();
+var params = process.argv.splice(2);
 var config = require('./config.js');
 
 const get_progress = (message) => {
@@ -46,15 +46,15 @@ const get_progress = (message) => {
 // }
 const render = () => {
 
-    var fuid = params[0];
-    var uuid = params[1];
-    var engine = params[2];
-    var scene = params[3];
-    var frame = params[4];
-    var samples = params[5];
-    var w = params[6];
-    var h = params[7];
-    var ts = params[8];
+    const fuid = params[0];
+    const uuid = params[1];
+    const engine = params[2];
+    const scene = params[3];
+    const frame = params[4];
+    const samples = params[5];
+    const w = params[6];
+    const h = params[7];
+    const ts = params[8];
 
 
 
@@ -69,7 +69,12 @@ const render = () => {
         fuid + '/' +
         ts + '/render/';
 
-    var cmdRender = blenderExecPath +
+    const logFilePath = config.rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/log/' +
+        frame + '.log';
+    const cmdRender = blenderExecPath +
         ' -b ' + blendProjectFilePath +
         ' -P ' + blPyScriptPath +
         ' --' + ' engine ' + engine +
@@ -78,12 +83,14 @@ const render = () => {
         ' frame ' + frame +
         ' w ' + w +
         ' h ' + h +
-        ' outputpath ' + outputPath;
+        ' outputpath ' + outputPath +
+        ' 2>&1 | tee ' + // output sdtout and stderr to log file
+        logFilePath;
 
 
 
 
-    var runCmdRender = exec(cmdRender);
+    const runCmdRender = exec(cmdRender);
     runCmdRender.stdout.on('data', function(data) {
         if (process.send) {
             if (data !== config.BlenderQuitStr) {
