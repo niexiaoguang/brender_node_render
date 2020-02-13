@@ -25,7 +25,8 @@ const do_init = async (argv) => {
     var dbPass = argv[4];
     var dbName = argv[5];
     var resp = await DB.init(dbHost, dbPort, dbUser, dbPass, dbName);
-    // logger.info(JSON.stringify(resp));
+    logger.info(JSON.stringify(resp));
+
     return resp;
 
 };
