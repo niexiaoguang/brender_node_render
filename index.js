@@ -17,7 +17,7 @@ const do_init = async (argv) => {
     logger.info('my id : ' + myid);
 
     var queueName = argv[6];
-    worker.init_queue_name(queueName);
+    worker.init(queueName);
 
     var dbHost = argv[1];
     var dbPort = argv[2];

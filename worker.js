@@ -17,9 +17,10 @@ const blprogram = path.resolve('node_docker_blender.js');
 
 var myData = {};
 
+
 // =============================================================
-const get_task_state(fuid) = async (fuid) => {
-    var queryResp = await DB.query_task(fuid);
+const get_task_state = async (tuid) => {
+    var queryResp = await DB.get_task_state(tuid);
 
     return queryResp.state;
 };
@@ -31,7 +32,7 @@ const mayAddNextJobs = async (job) => {
     // check if task still as 'started' by db query
     var fuid = job.data.fuid;
     var state = await getTaskState(fuid);
-    if (state == config.TaskStateCodeStarted) {
+    if (state == config.DBStateCodeStarted) {
 
         var data = job.data;
 
@@ -55,14 +56,6 @@ const mayAddNextJobs = async (job) => {
     } else {
         return job;
     }
-
-};
-
-// =============================================================
-
-const updateDB = async (job) => {
-    // console.log('updateDB for job : ' + JSON.stringify(job));
-    var query = '';
 
 };
 
@@ -147,22 +140,27 @@ const get_progress = (message) => {
 
 const save_result_to_db = async (code, job) => {
     var data = {};
-    data.fuid = job.data.fuid;
+    data.tuid = job.data.tuid;
     data.uuid = job.data.uuid;
     data.code = code;
     data.device = job.data.device; // add into all job data TODO
-    data.memo = '';
-    const res = DB.insert_jobs_table(data);
+    data.startTs = 'start'; // TODO
+    var res = await DB.insert_jobs_table(data);
     return res;
 
 }
 
-
+const check_result = async (job) => {
+    // check if image existed
+    // save reslut to db
+    var res = await save_result_to_db(config.DBStateCodeFinished, job);
+    return res;
+};
 // =============================================================
 const worker = async (job) => {
 
     var res = await get_task_state(job.data.fuid);
-    if (res == config.TaskStateCodeStarted) {
+    if (res == config.DBStateCodeStarted) {
         // set up child blender 
         var jobData = job.data;
         const parameters = prepare_params(jobData);
@@ -179,8 +177,7 @@ const worker = async (job) => {
                 job.progress(prog);
             }
             if (porg == 'Blender quit') {
-
-                await save_result_to_db(config.TaskStateCodeFinished, job);
+                check_result(job);
                 return jobData; // success here
             }
         });
@@ -188,15 +185,16 @@ const worker = async (job) => {
 
         // into loop
         var refreshId = setInterval(function() {
-            var state = await get_task_state(jobData.fuid);
-            if (state !== config.TaskStateCodeStarted) {
+            var state = get_task_state(jobData.tuid);
+            if (state !== config.DBStateCodeStarted) {
                 // kill child 
                 child.kill('SIGHUP');
-                var res = save_result_to_db(config.TaskStateCodeStopped, job);
                 clearInterval(refreshId);
 
             }
         }, 5000); // set interval better TODO
+        var res = await save_result_to_db(config.DBStateCodeStopped, job);
+
         return job.data; // how works after setinterval ?? FIXME 
 
     } else {

@@ -30,6 +30,8 @@ const DBColNameUpdateTs = 'update_ts';
 const DBColNameDevice = 'device';
 const DBColNameId = 'id';
 const DBColNameSuid = 'suid';
+const DBColNameFrame = 'frame';
+
 
 const DBStateCodeStopped = 'stp';
 const DBStateCodeStarted = 'sta';
@@ -62,6 +64,8 @@ exports.DBColNameUpdateTs = DBColNameUpdateTs;
 exports.DBColNameDevice = DBColNameDevice;
 exports.DBColNameId = DBColNameId;
 exports.DBColNameSuid = DBColNameSuid;
+exports.DBColNameFrame = DBColNameFrame;
+
 
 exports.DBStateCodeStopped = DBStateCodeStopped;
 exports.DBStateCodeStarted = DBStateCodeStarted;

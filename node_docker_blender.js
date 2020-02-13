@@ -40,7 +40,8 @@ const render = () => {
 
     const blendProjectFilePath = ''; // TODO
     const blPyScriptPath = ''; // TODO
-    const blendExecPath = ''; // TODO
+    const blenderExecPath = ''; // TODO
+    const containerOutputPath = ''; // TODO
     var cmdRender = blenderExecPath +
         ' -b ' + blendProjectFilePath +
         ' -P ' + blPyScriptPath +

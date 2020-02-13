@@ -3,7 +3,6 @@ const mariadb = require('mariadb');
 // const pool = mariadb.createPool({ config.DBHost, user: config.DBUser, connectionLimit: 5 });
 const { logger } = require('./logger.js');
 
-var conn;
 
 var gHost;
 var gPort;
@@ -12,7 +11,7 @@ var gPass;
 var gDatabase;
 
 const asyncQuery = async (query) => {
-    logger.log('info', 'db query', query);
+    logger.log('info', 'db query %s', query);
     var resp;
     let conn;
     try {
@@ -24,7 +23,7 @@ const asyncQuery = async (query) => {
             database: gDatabase
         });
 
-        resp = conn.query(query);
+        resp = await conn.query(query);
 
     } catch (err) {
         // throw err;
@@ -33,53 +32,53 @@ const asyncQuery = async (query) => {
 
 
     } finally {
-        if (conn) conn.release(); //release to pool
+        if (conn) conn.end();
         return resp;
 
     }
 };
 
 
-const get_task_state = async (fuid) => {
+const get_task_state = async (tuid) => {
     var query = 'SELECT * FROM ' +
-        config.DBTaskTabName +
-        ' WHERE fuid = ' +
-        fuid;
-    var resp = asyncQuery(query);
+        config.DBTabNameTask +
+        ' WHERE ' + config.DBColNameTuid + ' = ' +
+        tuid;
+    var resp = await asyncQuery(query);
     return resp;
 };
 
 // insert into user_table (user_id, ip, partial_ip, source, user_edit_date, username) values 
 // (default, '39.48.49.126', null, 'user signup page', now(), 'newUser');
 const insert_jobs_table = async (data) => {
-    const fuid = data.fuid;
+    const tuid = data.fuid;
     const uuid = data.uuid;
     const startTs = data.start;
     const code = data.code;
-    const memo = data.memo;
-
-    const query = 'INSERT INTO ' + config.DBJobsTableName +
+    const suid = '';
+    const query = 'INSERT INTO ' + config.DBTabNameJobs +
         ' (' +
-        config.DBJobsTabIdColName + ',' +
-        config.DBJobsTabFuidColName + ',' +
-        config.DBJobsTabUuidColName + ',' +
-        config.DBJobsTabStartColName + ',' +
-        config.DBJobsTabEndColName + ',' +
-        config.DBJobsTabDeviceColName + ',' +
-        config.DBJobsTabResColName + ',' +
-        config.DBJobsTabMemoColName + ',' +
+        config.DBColNameId + ',' +
+        config.DBColNameTuid + ',' +
+        config.DBColNameUuid + ',' +
+        config.DBColNameFrame + ',' +
+        config.DBColNameStart + ',' +
+        config.DBColNameEnd + ',' +
+        config.DBColNameState + ',' +
+        config.DBColNameDevice + ',' +
+        config.DBColNameSuid + ',' +
         ')' +
         ' VALUES ' +
         '(' +
         'default' + ',' +
-        fuid + ',' +
+        tuid + ',' +
         uuid + ',' +
         startTs + ',' +
         'now()' + ',' +
         code + ',' +
-        memo +
+        suid +
         ')';
-    var resp = asyncQuery(query);
+    var resp = await asyncQuery(query);
     return resp;
 };
 
