@@ -1,4 +1,5 @@
 const config = require('./config.js');
+const pkgjson = require('./package.json');
 
 const { logger } = require('./logger.js'); // require module as logger not the object inside which required by {logger}
 
@@ -11,7 +12,10 @@ var argv = process.argv.slice(2);
 
 const do_init = async (argv) => {
 
-    // process.env.NODE_ENV = 'production';
+    // process.env.NODE_ENV = 'production';  // set by docker
+    var version = pkgjson.version;
+    logger.info('node app version : ' + version);
+
 
     var myid = argv[0];
     logger.info('my id : ' + myid);
