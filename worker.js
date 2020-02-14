@@ -160,7 +160,7 @@ const handle_finished_job = (job) => {
         frame + '.png';
 
     var logFilePath =
-        const.rootPath +
+        config.rootPath +
         uuid + '/' +
         fuid + '/' +
         ts + '/log/' +
