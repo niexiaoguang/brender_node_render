@@ -17,12 +17,14 @@ const blprogram = path.resolve('node_docker_blender.js');
 const fs = require('fs')
 
 
-
+var wQ; // global variable for queue
 
 // set stop marker for parent worker process as false
 var gStopMarker = false;
 
 var gDevice = '';
+
+var gRootPath;
 
 const handle_db_connection_err = (data) => {
     logger.log('error', 'db connection broken with %s', JSON.stringify(data));
@@ -72,40 +74,43 @@ const mayAddNextJobs = async (job) => {
 
 };
 
-// -----------  TODO
 // {
 //     data: {
 //         uuid: 'uuid',
 //         fuid: 'fuid',
 //         job: {
-//             workernum: 5, // number of workers at a time 
+//             workernum: 2, // number of workers at a time 
 //             frame: 3, // current rendering frame
-//             device:'',
-
+//             tuid: 'tuid',
+//             ts:'ts',
+//             script:'prepare.py',
+//             jobid: 'tuid' + frame,
 //         },
-//         opts: {
-//             scene:'Scene',
-//             resolution: [1920, 1080],
-//             engine: 'CYCLES' / 'BLENDER_EEVEE',
-//             samples: 200,
-//             frames: [1, 250],
-//             step: 1,
+//          opts: { engine: 'engine', 
+//             scene: 'Scene', 
+//             frames: [1, 250], 
+//             step: 1, 
+//             resolution: [1920, 1080], 
+//             samples: 64 }
 //         }
 //     }
+// }
 const prepare_params = (jobData) => {
     var uuid = jobData.uuid;
     var fuid = jobData.fuid;
 
     var frame = jobData.job.frame;
-    var device = jobData.job.device;
 
     var engine = jobData.opts.engine;
     var w = jobData.opts.resolution[0];
     var h = jobData.opts.resolution[1];
     var scene = jobData.opts.scene;
     var samples = jobData.opts.samples;
-
-
+    var script = jobData.job.script;
+    var scriptPath = gRootpath + '/scripts/' + script; // better handle TODO
+    var ts = jobData.job.ts;
+    var tuid = jobData.job.tuid;
+    var outputRootpath = gRootpath;
     var resp = [
         fuid,
         uuid,
@@ -115,7 +120,10 @@ const prepare_params = (jobData) => {
         samples,
         w,
         h,
-        device
+        ts,
+        scriptPath,
+        outputRootpath,
+        gRootpath
     ].join(' ');
     return resp;
 };
@@ -127,25 +135,21 @@ const prepare_params = (jobData) => {
 // const code = data.code;
 
 const save_result_to_db = async (job, code) => {
-    var data = {};
-    data.tuid = job.data.tuid;
-    data.uuid = job.data.uuid;
-    data.frame = job.data.job.frame;
-    data.code = code;
-    data.device = gDevice; // add into all job data TODO
-    data.startTs = job.data.job.startTs; // TODO
-    var res = await DB.insert_jobs_table(data);
+
+    job.data.job.device = gDevice; // add device info
+    var res = await DB.insert_jobs_table(job, code);
     return res;
 
 }
 
-const check_result = async (job) => {
-    // check if image existed
-    // save reslut to db
-    var res = await save_result_to_db(config.DBStateCodeFinished, job);
-    return res;
+const handle_failed_job = (job) => {
+    save_result_to_db(job, config.DBStateCodeFailed);
+
 };
 
+const handle_stopped_job = (job) => {
+    save_result_to_db(job, config.DBStateCodeStopped);
+};
 
 const handle_finished_job = (job) => {
     // check result image
@@ -188,32 +192,75 @@ const handle_finished_job = (job) => {
 
 };
 
-const handle_failed_job = (job) => {
-    save_result_to_db(job, config.DBStateCodeFailed);
+const check_result = async (job) => {
+    // check if image existed
+    // save reslut to db
+    var fuid = job.data.fuid;
+    var uuid = job.data.uuid;
+    var ts = job.data.job.ts;
+    var frame = job.data.job.frame;
+    var targetResultImagePath = gRootPath + '/' +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/' +
+        frame + '.png';
 
+    try {
+        if (fs.existsSync(targetResultImagePath)) {
+            //file exists
+            logger.info('rendered file checked : ' + targetResultImagePath);
+            handle_finished_job(job);
+        }
+    } catch (err) {
+        // rendered image not existed , failed
+        logger.error(err);
+        handle_failed_job(job);
+
+    }
 };
 
-const handle_stopped_job = (job) => {
-    save_result_to_db(job, config.DBStateCodeStopped);
-};
 
 
+
+
+
+// {
+//     data: {
+//         uuid: 'uuid',
+//         fuid: 'fuid',
+//         job: {
+//             workernum: 2, // number of workers at a time 
+//             frame: 3, // current rendering frame
+//             tuid: 'tuid',
+//             ts:'ts',
+//             script:'prepare.py',
+//             jobid: 'tuid' + frame,
+//         },
+//          opts: { engine: 'engine', 
+//             scene: 'Scene', 
+//             frames: [1, 250], 
+//             step: 1, 
+//             resolution: [1920, 1080], 
+//             samples: 64 }
+//         }
+//     }
+// }
 // =============================================================
 const worker = async (job) => {
 
-    var res = await get_task_state(job.data.tuid);
+    var res = await get_task_state(job.data.job.tuid);
     if (res.state == config.DBStateCodeStarted) {
 
         var jobData = job.data;
         var uuid = jobData.uuid;
         var fuid = jobData.fuid;
-        var ts = jobData.ts;
-        var fileName = jobData.opts.name;
+        var ts = jobData.job.ts;
+        var fileName = fuid + '.blend';
 
 
         // check path and file
 
-        var targetBlenderFilePath = config.rootPath + uuid + '/' + fuid + '/' + ts + '/' + fileName;
+        var targetBlenderFilePath = gRootpath + '/' + uuid + '/' + fuid + '/' + fileName;
 
         try {
             if (fs.existsSync(targetBlenderFilePath)) {
@@ -225,6 +272,9 @@ const worker = async (job) => {
             return config.TaskErrCodeFileNotExist;
         }
 
+
+        // all ready , add start ts mark into job
+        job.data.job.startTs = new Date().getTime();
 
 
         // set up child blender 
@@ -266,7 +316,7 @@ const worker = async (job) => {
                 }
             }
 
-        }, TaskSateCheckFreq); // set interval better TODO
+        }, config.TaskSateCheckFreq); // set interval better TODO
 
 
     } else {
@@ -286,13 +336,19 @@ const get_system_device = () => {
 
 // =============================================================
 
-const init = (queueName) => {
+const init = (redisHost, redisPort, redisPass, queueName) => {
 
-
+    gRootPath = process.env.rootpath;
     // init queue
     gDevice = get_system_device();
 
-    const wQ = new Queue(queueName);
+    wQ = new Queue(queueName, {
+        redis: {
+            port: redisPort,
+            host: redisHost,
+            password: redisPass
+        }
+    }); // Specify Redis connection using object
 
     var queueReady = false;
     wQ.getJobCounts().then(res => {

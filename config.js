@@ -1,6 +1,3 @@
-const rootPath = '/media/';
-const logPath = './log/';
-const blenderScriptPath = rootPath + '/scripts/prepare.py';
 const blenderExecPath = '/usr/local/blender/blender';
 const Seperator = '-';
 
@@ -9,7 +6,6 @@ const ConWorkersNum = 2;
 
 
 const blImageName = 'bl281a';
-const blPyScriptName = 'prepare.py';
 
 const DBErrCode = 4100;
 const DBErrResp = 'db error';
@@ -51,11 +47,8 @@ const BlenderQuitStr = 'Blender quit';
 
 // ======================================
 
-exports.rootPath = rootPath;
-exports.logPath = logPath;
 
 exports.blenderExecPath = blenderExecPath;
-exports.blenderScriptPath = blenderScriptPath;
 
 exports.TaskSateCheckFreq = TaskSateCheckFreq;
 exports.BlenderQuitStr = BlenderQuitStr;

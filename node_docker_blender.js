@@ -55,25 +55,43 @@ const render = () => {
     const w = params[6];
     const h = params[7];
     const ts = params[8];
+    const scriptPath = params[9];
+    const outputPath = params[10];
+    const rootPath = params[11];
 
 
-
-    const blendProjectFilePath = config.rootPath +
+    const blendProjectFilePath = rootPath +
         uuid + '/' +
         fuid + '/' +
         fuid + '.blend'; // use fuid as blender project file name , and with mutable utf8 name insde config.js under fuid path TODO
-    const blPyScriptPath = config.blenderScriptPath;
+    const blPyScriptPath = scriptPath;
     const blenderExecPath = config.blenderExecPath;
-    const outputPath = config.rootPath +
+    const outputPath = rootPath +
         uuid + '/' +
         fuid + '/' +
-        ts + '/render/';
+        ts + '/';
 
-    const logFilePath = config.rootPath +
+    const logFilePath = rootPath +
         uuid + '/' +
         fuid + '/' +
         ts + '/log/' +
-        frame + '.log';
+        frame + '.log'; // need node master to create all the path TODO
+
+
+
+    // maybe better python args parse in future TODO
+    // from python script
+    //     print(argv)
+    // myRenderSetting = {}
+    // myRenderSetting['engine']       = argv[1]
+    // myRenderSetting['samples']      = argv[3]
+    // myRenderSetting['scene']        = argv[5]
+    // myRenderSetting['frame']        = argv[7]
+    // myRenderSetting['w']            = argv[9]
+    // myRenderSetting['h']            = argv[11]
+    // myRenderSetting['outputPath']   = argv[13]
+
+
     const cmdRender = blenderExecPath +
         ' -b ' + blendProjectFilePath +
         ' -P ' + blPyScriptPath +
@@ -112,128 +130,3 @@ const render = () => {
 // };
 
 render();
-
-
-
-
-
-
-
-
-
-// const checkLog = () => {
-
-//     exec(cmdReadLogOutput, (err, stdout, stderr) => {
-//         if (err) {
-//             // node couldn't execute the command
-//             return;
-//         }
-
-//         // the *entire* stdout and stderr (buffered)
-//         console.log(`stdout: ${stdout}`);
-//         console.log(`stderr: ${stderr}`);
-
-//         if (stdout.indexOf('Blender quit') > -1) {
-//             return;
-//         }
-//     });
-
-// }
-
-// const stop = async () => {
-
-//     await sleep(3000);
-
-//     var cmd2 = 'docker rm $(docker stop ' + containerTempName + ')';
-//     var runCmd2 = await exec(cmd2);
-//     runCmd2.stdout.on('data', function(data) {
-//         console.log(data);
-
-//     });
-// };
-
-// const spawn = require('child_process').spawn;
-
-// var cmd = spawn('docker' ['run', '-i', '--log-driver=none', '-a', 'stdin', '-a', 'stdout', '-a', 'stderr', '-v', '/home/pata/brender_dev/brender_node_master/task/blmedia/:/media/', 'bl281a', '-b', '/media/test_small_cycles_cpu.blend', '-P', '/media/prepare.py', '--', 'engine', 'CYCLES', 'samples', '64', 'scene', 'Scene', 'frame', '2', 'w', '1920', 'h', '1080', 'outputpath', '/media/']);
-
-
-// cmd.stdout.on('data', function(data) {
-//     console.log('stdout: ' + data.toString());
-// });
-
-// cmd.stderr.on('data', function(data) {
-//     console.log('stderr: ' + data.toString());
-// });
-
-// cmd.on('exit', function(code) {
-//     console.log('child process exited with code ' + code.toString());
-// });
-
-
-
-
-// exec(cmdRunBl, (err, stdout, stderr) => {
-//     if (err) {
-//         //some err occurred
-//         console.error(err)
-//     } else {
-//         // the *entire* stdout and stderr (buffered)
-//         console.log(`blender stdout: ${stdout}`);
-//         status = stdout;
-//         console.log(`blender stderr: ${stderr}`);
-
-//     }
-// });
-
-// setInterval(checkLog, 1000);
-
-
-// var blendProjectFilePath = 'test_small_cycles_cpu.blend';
-
-// var blendExecPath = '/home/pata/blender/blender-2.81a-linux-glibc217-x86_64/blender';
-
-// var localPath = '/home/pata/brender_dev/brender_node_render/blmedia/';
-// var containerPath = '/media/';
-// var containerOutputPath = '/media/';
-// var outputLogPath = localPath + 'output.log';
-// var engine = "CYCLES";
-// var samples = 64;
-// var frame = 2;
-// var w = 1920;
-// var h = 1080;
-// var scene = 'Scene';
-// var containerTempName;
-
-
-
-// const run = async () => {
-
-
-//     containerTempName = 'bl-' + new Date().getTime();
-//     var blImageName = 'bl281a';
-//     var blPyScriptName = 'prepare.py';
-//     // var runCmd = exec('docker run -i --log-driver=none -a stdin -a stdout -a stderr -v /home/pata/brender_dev/brender_node_render/blmedia/:/media/ --name bl281name2 bl281a -b /media/test_small_cycles_cpu.blend -P /media/prepare.py -- engine CYCLES samples 64 scene Scene frame 2 w 640 h 480 outputpath /media/');
-//     var cmd1 = 'docker run -i --log-driver=none -a stdin -a stdout -a stderr -v ' +
-//         localPath + ':' + containerPath +
-//         ' --name ' + containerTempName + ' ' + blImageName +
-//         ' -b ' + containerPath + blendProjectFilePath +
-//         ' -P ' + containerPath + blPyScriptName +
-//         ' --' + ' engine ' + engine +
-//         ' samples ' + samples +
-//         ' scene ' + scene +
-//         ' frame ' + frame +
-//         ' w ' + w +
-//         ' h ' + h +
-//         ' outputpath ' + containerOutputPath;
-
-
-//     console.log(cmd1);
-
-//     var runCmd = await exec(cmd1);
-//     runCmd.stdout.on('data', function(data) {
-//         // console.log(data);
-//         gProcess = getProgress(data);
-//     });
-
-
-// };

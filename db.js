@@ -10,6 +10,22 @@ var gUser;
 var gPass;
 var gDatabase;
 
+const make_timestamp_for_mysql = (ts) => {
+    var date = new Date();
+    date.setTime(ts);
+    var yyyy = date.getFullYear();
+    var mm = date.getMonth() + 1;
+    var dd = date.getDate();
+    var hh = date.getHours();
+    var min = date.getMinutes();
+    var ss = date.getSeconds();
+
+    var mysqlDateTime = yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min + ':' + ss;
+
+    return mysqlDateTime;
+};
+
+
 const asyncQuery = async (query) => {
     logger.log('info', 'db query %s', query);
     var resp;
@@ -50,13 +66,40 @@ const get_task_state = async (tuid) => {
 
 // insert into user_table (user_id, ip, partial_ip, source, user_edit_date, username) values 
 // (default, '39.48.49.126', null, 'user signup page', now(), 'newUser');
-const insert_jobs_table = async (data) => {
-    const tuid = data.tuid;
-    const uuid = data.uuid;
-    const frame = data.frame;
-    const startTs = data.start;
-    const code = data.code;
+
+
+
+// {
+//     data: {
+//         uuid: 'uuid',
+//         fuid: 'fuid',
+//         job: {
+//             workernum: 2, // number of workers at a time 
+//             frame: 3, // current rendering frame
+//             tuid: 'tuid',
+//             ts:'ts',
+//             script:'prepare.py',
+//             jobid: 'tuid' + frame,
+//             startTs: ts,
+//             device:'device'
+//         },
+//          opts: { engine: 'engine', 
+//             scene: 'Scene', 
+//             frames: [1, 250], 
+//             step: 1, 
+//             resolution: [1920, 1080], 
+//             samples: 64 }
+//         }
+//     }
+// }
+const insert_jobs_table = async (job, code) => {
+    const tuid = job.data.job.tuid;
+    const uuid = job.data.uuid;
+    const frame = job.data.job.frame;
+    const startTs = job.data.startTs;
+    const device = job.data.job.device;
     const suid = '';
+
     const query = 'INSERT INTO ' + config.DBTabNameJobs +
         ' (' +
         config.DBColNameId + ',' +
@@ -74,10 +117,11 @@ const insert_jobs_table = async (data) => {
         'default' + ',' +
         tuid + ',' +
         uuid + ',' +
-        frame + ',' +
-        startTs + ',' +
+        make_timestamp_for_mysql(startTs) + ',' +
         'now()' + ',' +
         code + ',' +
+        frame + ',' +
+        device + ',' +
         suid +
         ')';
     var resp = await asyncQuery(query);

@@ -3,31 +3,36 @@ const pkgjson = require('./package.json');
 
 const { logger } = require('./logger.js'); // require module as logger not the object inside which required by {logger}
 
-// console.log(process.argv);
+
 const worker = require('./worker.js');
 
 const DB = require('./db.js');
 
-var argv = process.argv.slice(2);
-
-const do_init = async (argv) => {
+const do_init = async () => {
 
     // process.env.NODE_ENV = 'production';  // set by docker
     var version = pkgjson.version;
     logger.info('node app version : ' + version);
 
 
-    var myid = argv[0];
+    var myid = process.env.nodeid;
     logger.info('my id : ' + myid);
 
-    var queueName = argv[6];
-    worker.init(queueName);
 
-    var dbHost = argv[1];
-    var dbPort = argv[2];
-    var dbUser = argv[3];
-    var dbPass = argv[4];
-    var dbName = argv[5];
+    var redisHost = process.env.redishost;
+    var redisPort = process.env.redisport;
+    var redisPass = process.env.redispass;
+
+    var queueName = process.env.queuename;
+    worker.init(redisHost, redisPort, redisPass, queueName);
+
+
+
+    var dbHost = process.env.dbhost;
+    var dbPort = process.env.dbport;
+    var dbUser = process.env.dbuser;
+    var dbPass = process.env.dbpass;
+    var dbName = process.env.dbname;
     var resp = await DB.init(dbHost, dbPort, dbUser, dbPass, dbName);
     logger.info(JSON.stringify(resp));
 
@@ -41,7 +46,7 @@ const start = () => {
 
 
 const init = async () => {
-    var res = await do_init(argv);
+    var res = await do_init(process.env);
     logger.info('init with : ' + JSON.stringify(res));
     start();
 }
