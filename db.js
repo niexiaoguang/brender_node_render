@@ -49,6 +49,7 @@ const asyncQuery = async (query) => {
 
     } finally {
         if (conn) conn.end();
+        logger.info('db resp : ' + JSON.stringify(resp));
         return resp;
 
     }
@@ -59,7 +60,7 @@ const get_task_state = async (tuid) => {
     var query = 'SELECT * FROM ' +
         config.DBTabNameTask +
         ' WHERE ' + config.DBColNameTuid + ' = ' +
-        tuid;
+        '"' + tuid + '"';
     var resp = await asyncQuery(query);
     return resp;
 };
@@ -115,14 +116,14 @@ const insert_jobs_table = async (job, code) => {
         ' VALUES ' +
         '(' +
         'default' + ',' +
-        tuid + ',' +
-        uuid + ',' +
-        make_timestamp_for_mysql(startTs) + ',' +
+        '"' + tuid + '"' + ',' +
+        '"' + uuid + '"' + ',' +
+        '"' + make_timestamp_for_mysql(startTs) + '"' + ',' +
         'now()' + ',' +
-        code + ',' +
-        frame + ',' +
-        device + ',' +
-        suid +
+        '"' + code + '"' + ',' +
+        '"' + frame + '"' + ',' +
+        '"' + device + '"' + ',' +
+        '"' + suid + '"' +
         ')';
     var resp = await asyncQuery(query);
     return resp;
