@@ -86,7 +86,7 @@ const worker = async (job) => {
 
     await sleep(5000);
 
-    if (dbres[0].uuid == 'a8fc0c294192af14cc202587920f1b8') {
+    if (dbres[0].uuid == 'a8fc0c294192af14cc202587920f17b8') {
         console.log('set loop to check db');
         var intervalId = setIntervalAsync(
             async () => {
