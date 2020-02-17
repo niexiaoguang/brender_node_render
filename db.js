@@ -62,6 +62,7 @@ const get_task_state = async (tuid) => {
         ' WHERE ' + config.DBColNameTuid + ' = ' +
         '"' + tuid + '"';
     var resp = await asyncQuery(query);
+
     return resp;
 };
 

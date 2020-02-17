@@ -1,6 +1,9 @@
 var exec = require('child_process').exec;
-var params = process.argv.splice(2);
-var config = require('./config.js');
+
+var config = {};
+
+config.blenderExecPath = '/usr/local/blender/blender';
+config.BlenderQuitStr = 'Blender quit';
 
 const get_progress = (message) => {
     var proc = null;
@@ -45,19 +48,19 @@ const get_progress = (message) => {
 //     }
 // }
 const render = () => {
-
-    const fuid = params[0];
-    const uuid = params[1];
-    const engine = params[2];
-    const scene = params[3];
-    const frame = params[4];
-    const samples = params[5];
-    const w = params[6];
-    const h = params[7];
-    const ts = params[8];
-    const scriptPath = params[9];
-    const outputPath = params[10];
-    const rootPath = params[11];
+    console.log('=====================  rendering ====================');
+    console.log('got parameters fuid : ' + process.env.fuid);
+    const fuid = process.env.fuid;
+    const uuid = process.env.uuid;
+    const engine = process.env.engine;
+    const scene = process.env.scene;
+    const frame = process.env.frame;
+    const samples = process.env.samples;
+    const w = process.env.w;
+    const h = process.env.h;
+    const ts = process.env.ts;
+    const scriptPath = process.env.scriptPath;
+    const rootPath = process.env.outputRootpath;
 
 
     const blendProjectFilePath = rootPath +
@@ -106,7 +109,7 @@ const render = () => {
         logFilePath;
 
 
-
+    console.log('render with cmd : ' + cmdRender);
 
     const runCmdRender = exec(cmdRender);
     runCmdRender.stdout.on('data', function(data) {

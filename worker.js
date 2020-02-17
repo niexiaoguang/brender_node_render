@@ -19,8 +19,6 @@ const fs = require('fs')
 
 var wQ; // global variable for queue
 
-// set stop marker for parent worker process as false
-var gStopMarker = false;
 
 var gDevice = '';
 
@@ -37,7 +35,7 @@ const handle_db_connection_err = (data) => {
 const get_task_state = async (tuid) => {
     var queryResp = await DB.get_task_state(tuid);
 
-    return queryResp.state;
+    return queryResp[0].state;
 };
 
 // =============================================================
@@ -45,8 +43,8 @@ const get_task_state = async (tuid) => {
 const mayAddNextJobs = async (job) => {
 
     // check if task still as 'started' by db query
-    var fuid = job.data.fuid;
-    var state = await getTaskState(fuid);
+    var tuid = job.data.job.tuid;
+    var state = await get_task_state(tuid);
     if (state == config.DBStateCodeStarted) {
 
         var data = job.data;
@@ -107,25 +105,39 @@ const prepare_params = (jobData) => {
     var scene = jobData.opts.scene;
     var samples = jobData.opts.samples;
     var script = jobData.job.script;
-    var scriptPath = gRootpath + '/scripts/' + script; // better handle TODO
+    var scriptPath = gRootPath + 'scripts/' + script; // better handle TODO
     var ts = jobData.job.ts;
     var tuid = jobData.job.tuid;
-    var outputRootpath = gRootpath;
-    var resp = [
-        fuid,
-        uuid,
-        engine,
-        scene,
-        frame,
-        samples,
-        w,
-        h,
-        ts,
-        scriptPath,
-        outputRootpath,
-        gRootpath
-    ].join(' ');
-    return resp;
+    var outputRootpath = gRootPath;
+    // var resp = [
+    //     fuid,
+    //     uuid,
+    //     engine,
+    //     scene,
+    //     frame,
+    //     samples,
+    //     w,
+    //     h,
+    //     ts,
+    //     scriptPath,
+    //     outputRootpath
+    // ].join(' ');
+
+    var data = {};
+    data.fuid = fuid;
+    data.uuid = uuid;
+    data.engine = engine;
+    data.scene = scene;
+    data.frame = frame;
+    data.samples = samples;
+    data.w = w;
+    data.h = h;
+    data.ts = ts;
+    data.scriptPath = scriptPath;
+    data.outputRootpath = outputRootpath;
+
+
+    return { env: data };
 };
 
 
@@ -157,14 +169,14 @@ const handle_finished_job = (job) => {
     var fuid = job.data.fuid;
     var ts = job.data.ts;
     var fram = job.data.job.frame;
-    var checkImageFilePath = config.rootPath +
+    var checkImageFilePath = gRootPath +
         uuid + '/' +
         fuid + '/' +
-        ts + '/rendered/' +
+        ts + '/' +
         frame + '.png';
 
     var logFilePath =
-        config.rootPath +
+        gRootPath +
         uuid + '/' +
         fuid + '/' +
         ts + '/log/' +
@@ -172,7 +184,7 @@ const handle_finished_job = (job) => {
     try {
         if (fs.existsSync(checkImageFilePath)) {
             //file exists
-            logger.info('blender file checked : ' + checkImageFilePath);
+            logger.info('rendered image file checked : ' + checkImageFilePath);
             save_result_to_db(job, config.DBStateCodeFinished);
             if (fs.existsSync(logFilePath)) {
                 //file exists
@@ -247,9 +259,9 @@ const check_result = async (job) => {
 // }
 // =============================================================
 const worker = async (job) => {
-
+    logger.info('worker got job : ' + JSON.stringify(job));
     var res = await get_task_state(job.data.job.tuid);
-    if (res.state == config.DBStateCodeStarted) {
+    if (res == config.DBStateCodeStarted) {
 
         var jobData = job.data;
         var uuid = jobData.uuid;
@@ -260,7 +272,7 @@ const worker = async (job) => {
 
         // check path and file
 
-        var targetBlenderFilePath = gRootpath + '/' + uuid + '/' + fuid + '/' + fileName;
+        var targetBlenderFilePath = gRootPath + uuid + '/' + fuid + '/' + fileName;
 
         try {
             if (fs.existsSync(targetBlenderFilePath)) {
@@ -283,10 +295,11 @@ const worker = async (job) => {
             stdio: ['pipe', 'pipe', 'pipe', 'ipc']
         };
 
-        const child = fork(program, parameters, options);
+        const child = fork('./node_docker_blender.js', parameters, options);
 
 
         child.on('message', message => {
+            logger.info('rendering info : ' + message);
             if (message == config.BlenderQuitStr) {
                 gStopMarker = true;
                 check_result(job);
@@ -296,28 +309,52 @@ const worker = async (job) => {
             }
         });
 
+        child.on('exit', result => {
+            logger.info('exit with : ' + result);
+            mayAddNextJobs(job);
 
-        // into loop
-        var refreshId = setInterval(async function(job) {
 
-            if (gStopMarker) {
-                // child finished
-                clearInterval(refreshId);
-                handle_finished_job(job);
+        })
+        // //into loop
+        // var gStopMarker = false;
+        // let intervalid;
+        // async function testFunction() {
+        //     intervalid = setInterval(() => {
+        //         // I use axios like: axios.get('/user?ID=12345').then
+        //         new Promise(function(resolve, reject) {
+        //             // resolve('something')
+        //             logger.info('in loop : ' + new Date().getTime());
+        //         }).then(res => {
+        //             if (condition) {
+        //                 // do something 
+        //             } else {
+        //                 clearInterval(intervalid)
+        //             }
+        //         })
+        //     }, config.TaskSateCheckFreq)
+        // }
+        // // you can use this function like
+        // var res = await testFunction();
+        // var refreshId = setInterval(function(job) {
 
-            } else {
-                var state = await get_task_state(jobData.tuid);
-                if (state !== config.DBStateCodeStarted) {
-                    // kill child 
-                    child.kill('SIGHUP');
-                    clearInterval(refreshId);
-                    handle_stopped_job(job);
+        //     if (gStopMarker) {
+        //         // child finished
+        //         clearInterval(refreshId);
+        //         handle_finished_job(job);
 
-                }
-            }
+        //     } else {
+        //         logger.info("looping");
+        //         // var state = await get_task_state(jobData.job.tuid);
+        //         // if (state !== config.DBStateCodeStarted) {
+        //         //     // kill child 
+        //         //     child.kill('SIGHUP');
+        //         //     clearInterval(refreshId);
+        //         //     handle_stopped_job(job);
 
-        }, config.TaskSateCheckFreq); // set interval better TODO
+        //         // }
+        //     }
 
+        // }, config.TaskSateCheckFreq); // set interval better TODO
 
     } else {
 
