@@ -98,7 +98,7 @@ const insert_jobs_table = async (job, code) => {
     const tuid = job.data.job.tuid;
     const uuid = job.data.uuid;
     const frame = job.data.job.frame;
-    const startTs = job.data.startTs;
+    const startTs = job.data.job.job_start_ts;
     const device = job.data.job.device;
     const suid = '';
 
@@ -112,17 +112,17 @@ const insert_jobs_table = async (job, code) => {
         config.DBColNameEnd + ',' +
         config.DBColNameState + ',' +
         config.DBColNameDevice + ',' +
-        config.DBColNameSuid + ',' +
+        config.DBColNameSuid +
         ')' +
         ' VALUES ' +
         '(' +
         'default' + ',' +
         '"' + tuid + '"' + ',' +
         '"' + uuid + '"' + ',' +
+        + frame + ',' +
         '"' + make_timestamp_for_mysql(startTs) + '"' + ',' +
         'now()' + ',' +
         '"' + code + '"' + ',' +
-        '"' + frame + '"' + ',' +
         '"' + device + '"' + ',' +
         '"' + suid + '"' +
         ')';

@@ -2,19 +2,26 @@ const Queue = require('bull');
 
 const config = require('./config.js');
 
-const Blender = require('./node_docker_blender.js');
-
 const { logger } = require('./logger.js');
 
 const DB = require('./db.js');
 
-const fork = require('child_process').fork;
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
-const path = require('path');
+// const fork = require('child_process').fork;
 
-const blprogram = path.resolve('node_docker_blender.js');
+// const path = require('path');
+
 
 const fs = require('fs')
+
+const {
+    setIntervalAsync,
+    clearIntervalAsync
+} = require('set-interval-async/dynamic')
+
+const sleep = (mil) => new Promise((res, rej) => setTimeout(res, mil));
 
 
 var wQ; // global variable for queue
@@ -23,6 +30,11 @@ var wQ; // global variable for queue
 var gDevice = '';
 
 var gRootPath;
+
+
+
+
+
 
 const handle_db_connection_err = (data) => {
     logger.log('error', 'db connection broken with %s', JSON.stringify(data));
@@ -93,58 +105,58 @@ const mayAddNextJobs = async (job) => {
 //         }
 //     }
 // }
-const prepare_params = (jobData) => {
-    var uuid = jobData.uuid;
-    var fuid = jobData.fuid;
 
-    var frame = jobData.job.frame;
-
-    var engine = jobData.opts.engine;
-    var w = jobData.opts.resolution[0];
-    var h = jobData.opts.resolution[1];
-    var scene = jobData.opts.scene;
-    var samples = jobData.opts.samples;
-    var script = jobData.job.script;
-    var scriptPath = gRootPath + 'scripts/' + script; // better handle TODO
-    var ts = jobData.job.ts;
-    var tuid = jobData.job.tuid;
-    var outputRootpath = gRootPath;
-    // var resp = [
-    //     fuid,
-    //     uuid,
-    //     engine,
-    //     scene,
-    //     frame,
-    //     samples,
-    //     w,
-    //     h,
-    //     ts,
-    //     scriptPath,
-    //     outputRootpath
-    // ].join(' ');
-
-    var data = {};
-    data.fuid = fuid;
-    data.uuid = uuid;
-    data.engine = engine;
-    data.scene = scene;
-    data.frame = frame;
-    data.samples = samples;
-    data.w = w;
-    data.h = h;
-    data.ts = ts;
-    data.scriptPath = scriptPath;
-    data.outputRootpath = outputRootpath;
+const prepare_cmd = (jobData) => {
+    const fuid = jobData.fuid;
+    const uuid = jobData.uuid;
+    const engine = jobData.opts.engine;
+    const scene = jobData.opts.scene;
+    const frame = jobData.job.frame;
+    const samples = jobData.opts.samples;
+    const w = jobData.opts.resolution[0];
+    const h = jobData.opts.resolution[1];
+    const ts = jobData.job.ts;
+    const scriptPath = jobData.job.script;
+    const rootPath = gRootPath;
 
 
-    return { env: data };
-};
+    const blendProjectFilePath = rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        fuid + '.blend'; // use fuid as blender project file name , and with mutable utf8 name insde config.js under fuid path TODO
+    const blPyScriptPath = rootPath + 'scripts/' + scriptPath;
+    const blenderExecPath = config.blenderExecPath;
+    const outputPath = rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/';
 
+    const logFilePath = rootPath +
+        uuid + '/' +
+        fuid + '/' +
+        ts + '/log/' +
+        frame + '.log'; // need node master to create all the path TODO
 
-// const fuid = data.fuid;
-// const uuid = data.uuid;
-// const startTs = data.start;
-// const code = data.code;
+    // '/usr/local/blender/blender -b /home/pata/brender_dev/brender_data/media/a8fc0c294192af14cc202587920f17b8/991c0c294192af14cc202587920f17b8/991c0c294192af14cc202587920f17b8.blend -P /home/pata/brender_dev/brender_data/media/scripts/prepare.py -- engine CYCLES samples 128 scene Scene frame 23 w 640 h 480 outputpath /home/pata/brender_dev/brender_data/media/a8fc0c294192af14cc202587920f17b8/991c0c294192af14cc202587920f17b8/1581839590572/ 2>&1 | tee /home/pata/brender_dev/brender_data/media/a8fc0c294192af14cc202587920f17b8/991c0c294192af14cc202587920f17b8/1581839590572/log/23.log';
+    const cmd = blenderExecPath + ' ' +
+        '-b' + ' ' +
+        blendProjectFilePath + ' ' +
+        '-P' + ' ' +
+        blPyScriptPath + ' ' +
+        '--' + ' ' +
+        'engine' + ' ' + engine + ' ' +
+        'samples' + ' ' + samples + ' ' +
+        'scene' + ' ' + scene + ' ' +
+        'frame' + ' ' + frame + ' ' +
+        'w' + ' ' + w + ' ' +
+        'h' + ' ' + h + ' ' +
+        'outputpath' + ' ' + outputPath + ' ' +
+        '2>&1 | tee ' + logFilePath;
+
+    logger.info('prepared cmd is ' + cmd);
+    return cmd;
+
+}
 
 const save_result_to_db = async (job, code) => {
 
@@ -154,83 +166,30 @@ const save_result_to_db = async (job, code) => {
 
 }
 
-const handle_failed_job = (job) => {
-    save_result_to_db(job, config.DBStateCodeFailed);
-
+const handle_cmd_failed_job = (job) => {
+    // record all job info for the fatal error
+    logger.info('error', 'fatal error:cmd render failed', JSON.stringify(job));
+    process.exit(1);
 };
 
-const handle_stopped_job = (job) => {
-    save_result_to_db(job, config.DBStateCodeStopped);
+const handle_failed_job = async (job) => {
+    var res = await save_result_to_db(job, config.DBStateCodeFailed);
+    return res;
 };
 
-const handle_finished_job = (job) => {
+const handle_stopped_job = async (job) => {
+    var res = await save_result_to_db(job, config.DBStateCodeStopped);
+    return res;
+};
+
+const handle_finished_job = async (job) => {
     // check result image
-    var uuid = job.data.uuid;
-    var fuid = job.data.fuid;
-    var ts = job.data.ts;
-    var fram = job.data.job.frame;
-    var checkImageFilePath = gRootPath +
-        uuid + '/' +
-        fuid + '/' +
-        ts + '/' +
-        frame + '.png';
 
-    var logFilePath =
-        gRootPath +
-        uuid + '/' +
-        fuid + '/' +
-        ts + '/log/' +
-        frame + '.log';
-    try {
-        if (fs.existsSync(checkImageFilePath)) {
-            //file exists
-            logger.info('rendered image file checked : ' + checkImageFilePath);
-            save_result_to_db(job, config.DBStateCodeFinished);
-            if (fs.existsSync(logFilePath)) {
-                //file exists
-                logger.info('remove log file : ' + logFilePath);
-                save_result_to_db(job, config.DBStateCodeFinished);
-                return;
-            }
-
-            return;
-        }
-
-
-    } catch (err) {
-        logger.error(err);
-        handle_failed_job(job);
-    }
+    var res = await save_result_to_db(job, config.DBStateCodeFinished);
+    res = await mayAddNextJobs(job);
+    return job.data;
 
 };
-
-const check_result = async (job) => {
-    // check if image existed
-    // save reslut to db
-    var fuid = job.data.fuid;
-    var uuid = job.data.uuid;
-    var ts = job.data.job.ts;
-    var frame = job.data.job.frame;
-    var targetResultImagePath = gRootPath + '/' +
-        uuid + '/' +
-        fuid + '/' +
-        ts + '/' +
-        frame + '.png';
-
-    try {
-        if (fs.existsSync(targetResultImagePath)) {
-            //file exists
-            logger.info('rendered file checked : ' + targetResultImagePath);
-            handle_finished_job(job);
-        }
-    } catch (err) {
-        // rendered image not existed , failed
-        logger.error(err);
-        handle_failed_job(job);
-
-    }
-};
-
 
 
 
@@ -261,6 +220,9 @@ const check_result = async (job) => {
 const worker = async (job) => {
     logger.info('worker got job : ' + JSON.stringify(job));
     var res = await get_task_state(job.data.job.tuid);
+    // waiting for db response
+    await sleep(3000);
+    logger.info('waiting to check db res');
     if (res == config.DBStateCodeStarted) {
 
         var jobData = job.data;
@@ -286,75 +248,62 @@ const worker = async (job) => {
 
 
         // all ready , add start ts mark into job
-        job.data.job.startTs = new Date().getTime();
+        // add job do start ts for rendering
+        job.data.job.job_start_ts = new Date().getTime();
 
 
-        // set up child blender 
-        const parameters = prepare_params(jobData);
-        const options = {
-            stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-        };
-
-        const child = fork('./node_docker_blender.js', parameters, options);
 
 
-        child.on('message', message => {
-            logger.info('rendering info : ' + message);
-            if (message == config.BlenderQuitStr) {
-                gStopMarker = true;
-                check_result(job);
-            } else {
-                // update progress
-                job.progress(parseInt(message));
-            }
-        });
-
-        child.on('exit', result => {
-            logger.info('exit with : ' + result);
-            mayAddNextJobs(job);
+        logger.info('do start loop and rendering');
 
 
-        })
-        // //into loop
-        // var gStopMarker = false;
-        // let intervalid;
-        // async function testFunction() {
-        //     intervalid = setInterval(() => {
-        //         // I use axios like: axios.get('/user?ID=12345').then
-        //         new Promise(function(resolve, reject) {
-        //             // resolve('something')
-        //             logger.info('in loop : ' + new Date().getTime());
-        //         }).then(res => {
-        //             if (condition) {
-        //                 // do something 
-        //             } else {
-        //                 clearInterval(intervalid)
-        //             }
-        //         })
-        //     }, config.TaskSateCheckFreq)
-        // }
-        // // you can use this function like
-        // var res = await testFunction();
-        // var refreshId = setInterval(function(job) {
 
-        //     if (gStopMarker) {
-        //         // child finished
-        //         clearInterval(refreshId);
-        //         handle_finished_job(job);
+        var intervalId = setIntervalAsync(
+            async (job) => {
+                    var res = await get_task_state(job.data.job.tuid);
 
-        //     } else {
-        //         logger.info("looping");
-        //         // var state = await get_task_state(jobData.job.tuid);
-        //         // if (state !== config.DBStateCodeStarted) {
-        //         //     // kill child 
-        //         //     child.kill('SIGHUP');
-        //         //     clearInterval(refreshId);
-        //         //     handle_stopped_job(job);
+                    // logger.info('loop check db : ' + JSON.stringify(res));
+                    if (res !== config.DBStateCodeStarted) {
+                        logger.info('task stopped by user');
+                        clearIntervalAsync(intervalId);
+                        var res = await handle_stopped_job(job);
+                        logger.info('job stopped : ' + JSON.stringify(job));
+                        process.exit(1); // =============  just stop this process and let docker reload it , maybe better handle in next version  FIXME
+                    }
+                },
+                3000, job
+        )
 
-        //         // }
-        //     }
+        var stdOtp;
+        var stdErr;
 
-        // }, config.TaskSateCheckFreq); // set interval better TODO
+        const cmd = prepare_cmd(jobData);
+        logger.info('start rendering with cmd : ' + cmd);
+        try {
+            const { stdout, stderr } = await exec(cmd);
+            stdOtp = stdout;
+            stdErr = stderr;
+            console.log('stdout:', stdout);
+            console.log('stderr:', stderr);
+        } catch (e) {
+            logger.error(e); // should contain code (exit code) and signal (that caused the termination).
+            handle_cmd_failed_job(job);
+        }
+
+
+        if (stdOtp.indexOf('Saved:') > -1) {
+            logger.info('saved a pic');
+            clearIntervalAsync(intervalId);
+            return await handle_finished_job(job);
+
+        } else {
+            return await handle_failed_job(job);
+        }
+
+
+
+
+
 
     } else {
 
@@ -405,18 +354,18 @@ const init = (redisHost, redisPort, redisPass, queueName) => {
         return await worker(job);
     });
 
-    wQ.on('completed', async (job, result) => {
-        if (result == config.TaskErrCodeDbNoRecord) {
-            return;
-        } else if (result == config.TaskErrCodeFileNotExist) {
-            return;
-        } else {
-            return await mayAddNextJobs(job); // like process ?? TODO
+    // wQ.on('completed', async (job, result) => {
+    //     if (result == config.TaskErrCodeDbNoRecord) {
+    //         return;
+    //     } else if (result == config.TaskErrCodeFileNotExist) {
+    //         return;
+    //     } else {
+    //         return await mayAddNextJobs(job); // like process ?? TODO
 
-        }
+    //     }
 
 
-    });
+    // });
 
 };
 
