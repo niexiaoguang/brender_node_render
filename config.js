@@ -34,6 +34,7 @@ const DBStateCodeStarted = 'sta';
 const DBStateCodeFinished = 'fin';
 const DBStateCodeFailed = 'fai';
 
+const DBConnectTimeout = 3000; // mil sec
 
 const TaskSateCheckFreq = 10000; //10 sec
 
@@ -82,7 +83,7 @@ exports.DBColNameId = DBColNameId;
 exports.DBColNameSuid = DBColNameSuid;
 exports.DBColNameFrame = DBColNameFrame;
 
-
+exports.DBConnectTimeout = DBConnectTimeout;
 exports.DBStateCodeStopped = DBStateCodeStopped;
 exports.DBStateCodeStarted = DBStateCodeStarted;
 exports.DBStateCodeFinished = DBStateCodeFinished;

@@ -36,7 +36,8 @@ const asyncQuery = async (query) => {
             port: gPort,
             user: gUser,
             password: gPass,
-            database: gDatabase
+            database: gDatabase,
+            connectTimeout: config.DBConnectTimeout
         });
 
         resp = await conn.query(query);
@@ -119,7 +120,7 @@ const insert_jobs_table = async (job, code) => {
         'default' + ',' +
         '"' + tuid + '"' + ',' +
         '"' + uuid + '"' + ',' +
-        + frame + ',' +
+        +frame + ',' +
         '"' + make_timestamp_for_mysql(startTs) + '"' + ',' +
         'now()' + ',' +
         '"' + code + '"' + ',' +

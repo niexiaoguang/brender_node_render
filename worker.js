@@ -46,8 +46,13 @@ const handle_db_connection_err = (data) => {
 // =============================================================
 const get_task_state = async (tuid) => {
     var queryResp = await DB.get_task_state(tuid);
+    if (queryResp !== config.DBErrCode) {
+        return queryResp[0].state;
 
-    return queryResp[0].state;
+    } else {
+        handle_db_connection_err();
+
+    }
 };
 
 // =============================================================
@@ -162,7 +167,12 @@ const save_result_to_db = async (job, code) => {
 
     job.data.job.device = gDevice; // add device info
     var res = await DB.insert_jobs_table(job, code);
-    return res;
+    if (res !== config.DBErrCode) {
+        return res;
+    } else {
+        handle_db_connection_err();
+    }
+
 
 }
 
@@ -283,8 +293,8 @@ const worker = async (job) => {
             const { stdout, stderr } = await exec(cmd);
             stdOtp = stdout;
             stdErr = stderr;
-            console.log('stdout:', stdout);
-            console.log('stderr:', stderr);
+            // console.log('stdout:', stdout);
+            // console.log('stderr:', stderr);
         } catch (e) {
             logger.error(e); // should contain code (exit code) and signal (that caused the termination).
             handle_cmd_failed_job(job);
@@ -305,8 +315,11 @@ const worker = async (job) => {
 
 
 
+    } else if (type(res) == undefined) {
+        logger.error('db connection timeout');
+        return config.DBErrCode;
     } else {
-
+        logger.info('job stopped : ' + JSON.stringify(job));
         // handle_db_connection_err(job);
         return config.TaskErrCodeDbNoRecord;
     }

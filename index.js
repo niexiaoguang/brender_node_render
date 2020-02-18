@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 const config = require('./config.js');
 const pkgjson = require('./package.json');
 
@@ -25,8 +27,6 @@ const do_init = async () => {
 
     var queueName = process.env.queuename;
     worker.init(redisHost, redisPort, redisPass, queueName);
-
-
 
     var dbHost = process.env.dbhost;
     var dbPort = process.env.dbport;
