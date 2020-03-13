@@ -1,3 +1,6 @@
+
+/ssl
+ssl/
 # Logs
 logs
 *.log
