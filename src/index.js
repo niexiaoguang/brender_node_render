@@ -11,6 +11,9 @@ const init = async () => {
     var res;
     // var res = await do_init();
     logger.info('node dev init with : ' + JSON.stringify(res));
+
+    
+    test_amqp.test();
 }
 
 init();

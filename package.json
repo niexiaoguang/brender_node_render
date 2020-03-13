@@ -2,10 +2,10 @@
   "name": "brender_node_render",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon --watch src/index.js",
+    "dev": "nodemon --watch src/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,11 +23,10 @@
     "qiniu": "^7.3.0",
     "winston": "^3.2.1",
     "amqplib": "^0.5.5",
-    "avsc": "^5.4.19"
+    "avsc": "^5.4.19",
+    "dockerode":"^3.1.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.2",
-    "bytenode": "^1.1.6",
-    "javascript-obfuscator": "^0.25.4"
+    "nodemon": "^2.0.2"
   }
 }
