@@ -23,7 +23,7 @@ const test = () => {
       // ... go to town
       conn.createChannel().then(function(ch){
         var q = 'hello';
-        var msg = 'Hello Brender from render hahahah!';
+        var msg = 'Hello Brender from render haha!';
     
         var ok = ch.assertQueue(q, {durable: false});
         return ok.then(function(_qok) {
